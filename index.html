@@ -175,7 +175,7 @@ input.f:focus,textarea.f:focus{outline:none;border-color:var(--green)}
 .share-sess li{margin-bottom:3px}
 
 /* ---------- dialog ---------- */
-#dialogRoot{position:fixed;inset:0;z-index:90;display:none;align-items:flex-end;justify-content:center;
+#dialogRoot{position:fixed;inset:0;z-index:130;display:none;align-items:flex-end;justify-content:center;
   background:rgba(16,30,24,.45)}
 #dialogRoot.open{display:flex}
 .sheet{background:var(--card);width:100%;max-width:680px;border-radius:20px 20px 0 0;
@@ -242,9 +242,17 @@ let db = loadDB();
 function loadDB(){
   try {
     const raw = store.get(DB_KEY);
-    if (raw) { const d = JSON.parse(raw); if (d && d.clients) return d; }
+    if (raw) { const d = JSON.parse(raw); if (d && d.clients){ if (!d.myDrills) d.myDrills = []; return d; } }
   } catch(e){}
-  return { clients: [], sessions: [] };
+  return { clients: [], sessions: [], myDrills: [] };
+}
+/* one unified notes list (with migration from the old 3-bucket format) */
+function notesItems(s){
+  if (!s.notes) return [];
+  if (Array.isArray(s.notes.items)) return s.notes.items;
+  const merged = [...(s.notes.highlights||[]), ...(s.notes.technical||[]), ...(s.notes.next||[])];
+  s.notes.items = merged;
+  return merged;
 }
 function save(){ store.set(DB_KEY, JSON.stringify(db)); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -455,7 +463,7 @@ function sessionCard(s){
   const shots = (s.shots||[]).slice(0,3);
   let preview = "";
   if (s.status==="done"){
-    preview = (s.notes && (s.notes.highlights[0] || s.notes.technical[0])) || s.transcript || s.objective || "";
+    preview = notesItems(s)[0] || s.transcript || s.objective || "";
   } else {
     preview = s.objective || (s.plan && s.plan.length ? s.plan[0].name : "");
   }
@@ -478,7 +486,7 @@ function newSession(clientId, status){
     id: uid(), clientId, status, date: todayISO(),
     shots: [], principles: [], objective: "",
     plan: [], transcript: "",
-    notes: { highlights: [], technical: [], next: [] },
+    notes: { items: [] },
     diagrams: []
   };
   db.sessions.push(s); save();
@@ -504,8 +512,7 @@ function renderSession(sessionId){
   const s = db.sessions.find(x=>x.id===sessionId);
   if (!s) return go("home");
   const c = db.clients.find(x=>x.id===s.clientId);
-  if (s.status==="done" && sessTab==="plan" && route._auto!==false) sessTab = route.tab || "review";
-  if (route.tab){ sessTab = route.tab; route.tab = null; }
+  if (!route.tabInit){ sessTab = route.tab || (s.status==="done" ? "review" : "plan"); route.tabInit = true; }
 
   let html = `
     <div class="topbar">
@@ -595,6 +602,7 @@ function planTabHTML(s){
         ${d.level?`<span class="lvl">Level ${d.level}</span>`:""}
         ${(d.tags||[]).map(t=>`<span class="chip tag" style="font-size:11px;padding:2px 8px">${esc(t)}</span>`).join("")}
       </div>
+      ${d.elements?`<div class="court-thumb" style="margin-top:8px">${diagramSVG(d.elements)}</div>`:""}
     </div>`;
   });
   html += `<button class="btn secondary" style="margin-top:12px" onclick="openAddDrill('${s.id}')">+ Add drill</button></div>`;
@@ -605,8 +613,25 @@ function removeDrill(sessId, idx){
   s.plan.splice(idx,1); save(); renderSession(sessId);
 }
 function openAddDrill(sessId){
+  let libHTML = "";
+  if (db.myDrills.length){
+    libHTML = `<label class="f">From my drill library</label>` + db.myDrills.map((d,i)=>`
+      <div class="drill" style="margin-top:7px">
+        <div class="row" style="align-items:flex-start">
+          <div class="grow" onclick="addLibDrill('${sessId}','${d.id}')">
+            <div class="dname">&#128506;&#65039; ${esc(d.name)}</div>
+            ${d.desc?`<div class="ddesc">${esc(d.desc)}</div>`:""}
+            ${(d.tags||[]).length?`<div class="dfoot">${d.tags.slice(0,4).map(t=>`<span class="chip tag" style="font-size:11px;padding:2px 8px">${esc(t)}</span>`).join("")}</div>`:""}
+          </div>
+          <button class="btn danger-ghost" style="padding:2px 6px;font-size:17px" onclick="event.stopPropagation();removeLibDrill('${d.id}','${sessId}')">&#215;</button>
+        </div>
+      </div>`).join("") +
+      `<div class="hint">Tap a drill to add it — its court diagram comes with it.</div>
+       <div style="border-top:1.5px solid var(--line);margin:14px 0 2px"></div>`;
+  }
   openSheet(`
     <h2>Add drill</h2>
+    ${libHTML}
     <label class="f">Phase</label>
     <select class="f" id="ad_phase">
       <option>Warm-up</option><option selected>Main work</option><option>Game-based</option>
@@ -625,6 +650,18 @@ function openAddDrill(sessId){
     save(); closeSheet(); renderSession(sessId);
   };
 }
+function addLibDrill(sessId, drillId){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  const d = db.myDrills.find(x=>x.id===drillId); if(!d) return;
+  s.plan.push({ name: d.name, desc: d.desc, phase: "Main work", custom: true,
+    tags: (d.tags||[]).slice(0,3), elements: JSON.parse(JSON.stringify(d.elements)) });
+  save(); closeSheet(); renderSession(sessId); toast("Added from your library");
+}
+function removeLibDrill(drillId, sessId){
+  if (!confirm("Remove this drill from your library? (Doesn't affect past lesson plans.)")) return;
+  db.myDrills = db.myDrills.filter(x=>x.id!==drillId);
+  save(); closeSheet(); openAddDrill(sessId);
+}
 
 /* ---------- REVIEW TAB (dictation + structured notes) ---------- */
 function reviewTabHTML(s){
@@ -642,24 +679,19 @@ function reviewTabHTML(s){
       placeholder="Dictate here, or type/paste your voice-memo transcript…"
       oninput="updSess('${s.id}','transcript',this.value)">${esc(s.transcript)}</textarea>
     <div id="interimLine" class="interim" style="font-size:14px;min-height:18px;margin-top:4px"></div>
-    <button class="btn" style="margin-top:10px" onclick="organizeNotes('${s.id}')">&#10024; Organize into clean notes</button>
-    <div class="hint">Sorts your words into highlights, technical instruction, and next steps. You can edit everything after.</div>
+    <button class="btn" style="margin-top:10px" onclick="organizeNotes('${s.id}')">&#10024; Clean up into session notes</button>
+    <div class="hint">Distills your dictation into one tidy bulleted list of what you worked on. Edit freely after.</div>
   </div>
 
-  ${noteBoxHTML(s,"highlights","Session highlights","var(--green)","What went well, breakthroughs, wins")}
-  ${noteBoxHTML(s,"technical","Technical instruction","var(--clay)","Cues and corrections given this session")}
-  ${noteBoxHTML(s,"next","Next steps","var(--blue)","What to build on next lesson, homework")}`;
-}
-function noteBoxHTML(s, key, title, color, ph){
-  return `<div class="card notebox">
-    <h3><span class="dot" style="background:${color}"></span>${title}</h3>
-    <textarea class="f" style="min-height:74px" placeholder="${ph} — one per line"
-      oninput="setNotes('${s.id}','${key}',this.value)">${esc((s.notes[key]||[]).join("\n"))}</textarea>
+  <div class="card notebox">
+    <h3><span class="dot" style="background:var(--green)"></span>Session notes</h3>
+    <textarea class="f" style="min-height:130px" placeholder="What you worked on — one item per line"
+      oninput="setNotes('${s.id}',this.value)">${esc(notesItems(s).join("\n"))}</textarea>
   </div>`;
 }
-function setNotes(sessId, key, val){
+function setNotes(sessId, val){
   const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
-  s.notes[key] = val.split("\n").map(x=>x.trim()).filter(Boolean);
+  s.notes = { items: val.split("\n").map(x=>x.trim()).filter(Boolean) };
   save();
 }
 
@@ -796,21 +828,19 @@ function organizeNotes(sessId){
   const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
   const text = (s.transcript||"").trim();
   if (!text){ toast("Nothing to organize yet — dictate or type first"); return; }
-  const buckets = { highlights: [], technical: [], next: [] };
+  const items = notesItems(s);
+  const existing = new Set(items);
   for (const sent of splitSentences(text)){
-    const key = NEXT_RE.test(sent) ? "next" : WIN_RE.test(sent) ? "highlights"
-      : TECH_RE.test(sent) ? "technical" : "highlights";
+    const isNext = NEXT_RE.test(sent);
     for (const clause of clauseSplit(sent)){
-      const bullet = toBullet(clause);
-      if (bullet && bullet.split(/\s+/).length >= 2) buckets[key].push(bullet);
+      let bullet = toBullet(clause);
+      if (!bullet || bullet.split(/\s+/).length < 2) continue;
+      if (isNext) bullet = "Next: " + bullet.charAt(0).toLowerCase() + bullet.slice(1);
+      if (!existing.has(bullet)){ items.push(bullet); existing.add(bullet); }
     }
   }
-  // merge with existing (don't clobber manual edits; append only new lines)
-  for (const k of ["highlights","technical","next"]){
-    const existing = new Set(s.notes[k]);
-    for (const line of buckets[k]) if (!existing.has(line)) s.notes[k].push(line);
-  }
-  save(); renderSession(sessId); toast("Notes organized — review & edit below");
+  s.notes = { items };
+  save(); renderSession(sessId); toast("Session notes cleaned up — edit below");
 }
 
 /* ============================================================
@@ -912,11 +942,19 @@ function suggestPlan(sessId){
     else sc += 0.25;                            // familiar is ok, slight nod to variety
     return sc;
   }
+  // include your own library drills as suggestion candidates (default: main work)
+  const libCandidates = db.myDrills.map(d=>({
+    name: d.name, desc: d.desc, phase: "main", level: 2,
+    shots: (d.tags||[]).filter(t=>SHOTS.includes(t)),
+    principles: (d.tags||[]).filter(t=>PRINCIPLES.includes(t)),
+    elements: d.elements, mine: true
+  }));
+  const ALL = DRILLS.concat(libCandidates);
   function pick(phase, n, fallbackLoose){
-    let pool = DRILLS.filter(d=>d.phase===phase).map(d=>({d, sc:score(d)}))
+    let pool = ALL.filter(d=>d.phase===phase).map(d=>({d, sc:score(d)}))
       .filter(x=>x.sc>=0).sort((a,b)=>b.sc-a.sc);
     if (!pool.length && fallbackLoose)
-      pool = DRILLS.filter(d=>d.phase===phase).map(d=>({d, sc:2-Math.abs((d.level||1)-targetLevel)}))
+      pool = ALL.filter(d=>d.phase===phase).map(d=>({d, sc:2-Math.abs((d.level||1)-targetLevel)}))
         .sort((a,b)=>b.sc-a.sc);
     return pool.slice(0,n).map(x=>x.d);
   }
@@ -929,14 +967,19 @@ function suggestPlan(sessId){
   for (const arr of [warm, main, game])
     for (const d of arr)
       plan.push({ name:d.name, desc:d.desc, coaching:d.coaching, level:d.level,
-        phase: phaseName[d.phase], tags:(d.shots||[]).filter(x=>s.shots.includes(x)).concat((d.principles||[]).filter(x=>s.principles.includes(x))).slice(0,3) });
+        phase: phaseName[d.phase], elements: d.elements ? JSON.parse(JSON.stringify(d.elements)) : undefined,
+        tags:(d.shots||[]).filter(x=>s.shots.includes(x)).concat((d.principles||[]).filter(x=>s.principles.includes(x))).slice(0,3) });
 
   // pull forward last session's next steps into the objective if empty
   if (!s.objective){
     const lastDone = db.sessions.filter(x=>x.clientId===s.clientId && x.status==="done" && x.id!==s.id)
       .sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];
-    if (lastDone && lastDone.notes && lastDone.notes.next.length)
-      s.objective = "Build on last session: " + lastDone.notes.next.slice(0,2).join("; ");
+    if (lastDone){
+      const items = notesItems(lastDone);
+      const nexts = items.filter(x=>/^next:/i.test(x)).map(x=>x.replace(/^next:\s*/i,""));
+      const src = nexts.length ? nexts : items;
+      if (src.length) s.objective = "Build on last session: " + src.slice(0,2).join("; ");
+    }
   }
   s.plan = plan;
   save(); renderSession(sessId);
@@ -1001,8 +1044,10 @@ function elementSVG(el){
       <path d="${smoothPathD(pts)}" stroke="#ffffff" stroke-width="6" stroke-dasharray="12 9"/>
       ${arrowHead(b.x, b.y, ang, "#ffffff")}</g>`;
   }
-  if (el.t==="num")
-    return `<g><circle cx="${el.x}" cy="${el.y}" r="17" fill="#ffffff" stroke="#d95d39" stroke-width="3.5"/><text x="${el.x}" y="${el.y+6.5}" text-anchor="middle" font-size="19" font-weight="800" fill="#d95d39" font-family="inherit">${el.n||1}</text></g>`;
+  if (el.t==="num" || el.t==="numb")   // ball-order number (yellow, matches ball path)
+    return `<g><circle cx="${el.x}" cy="${el.y}" r="17" fill="#ffd23e" stroke="#8a6d00" stroke-width="3"/><text x="${el.x}" y="${el.y+6.5}" text-anchor="middle" font-size="19" font-weight="800" fill="#5c4800" font-family="inherit">${el.n||1}</text></g>`;
+  if (el.t==="nump")                   // player-order number (white, matches player run)
+    return `<g><circle cx="${el.x}" cy="${el.y}" r="17" fill="#ffffff" stroke="#2b6cb0" stroke-width="3.5"/><text x="${el.x}" y="${el.y+6.5}" text-anchor="middle" font-size="19" font-weight="800" fill="#2b6cb0" font-family="inherit">${el.n||1}</text></g>`;
   if (el.t==="balldot")
     return `<g><circle cx="${el.x}" cy="${el.y}" r="13" fill="#d9e94f" stroke="#96a821" stroke-width="2"/>
       <path d="M${el.x-11},${el.y-7} Q${el.x-2},${el.y} ${el.x-11},${el.y+7} M${el.x+11},${el.y-7} Q${el.x+2},${el.y} ${el.x+11},${el.y+7}" stroke="#ffffff" stroke-width="2.2" fill="none"/></g>`;
@@ -1052,11 +1097,13 @@ function openCourtEditor(sessId, idx){
   const existing = idx>=0 ? s.diagrams[idx] : null;
   ce = { sessId, idx, tool:"ball",
     elements: existing ? JSON.parse(JSON.stringify(existing.elements)) : [],
-    title: existing ? existing.title : "", drag:null, vb:{x:0,y:0,w:CW,h:CH} };
+    title: existing ? existing.title : "", goal: existing ? (existing.goal||"") : "",
+    tags: existing ? (existing.tags||[]) : [], drag:null, vb:{x:0,y:0,w:CW,h:CH} };
   const tools = [
     ["ball","Ball path", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="18" y2="6"/><polyline points="12 5 18 6 17 12"/></svg>`],
     ["move","Player run", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><path d="M4 20 Q8 10 13 12 T20 5"/><polyline points="14 4 20 5 19 11" stroke-dasharray="0"/></svg>`],
-    ["num","Order #", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="currentColor" stroke="none" font-weight="bold">1</text></svg>`],
+    ["numb","Ball #", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" fill="currentColor" opacity=".25"/><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="currentColor" stroke="none" font-weight="bold">1</text></svg>`],
+    ["nump","Run #", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="currentColor" stroke="none" font-weight="bold">1</text></svg>`],
     ["balldot","Ball", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M5 8 Q10 12 5 16 M19 8 Q14 12 19 16"/></svg>`],
     ["cone","Cone", `<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12,4 5,20 19,20"/></svg>`],
     ["target","Target", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>`],
@@ -1135,7 +1182,7 @@ function wireCourtPointer(){
   const preview = ()=>document.querySelector("#courtSVG #preview");
   const pointers = new Map();
   let gesture = null, pinchPrev = null;
-  const MARKERS = ["cone","target","player","coach","num","balldot"];
+  const MARKERS = ["cone","target","player","coach","numb","nump","balldot"];
 
   svg.addEventListener("pointerdown", ev=>{
     ev.preventDefault();
@@ -1199,7 +1246,8 @@ function wireCourtPointer(){
       if (MARKERS.includes(ce.tool)){
         if (!g.moved){
           const el = { t: ce.tool, x:p.x, y:p.y };
-          if (ce.tool === "num") el.n = ce.elements.filter(e=>e.t==="num").length + 1;
+          if (ce.tool === "numb") el.n = ce.elements.filter(e=>e.t==="numb"||e.t==="num").length + 1;
+          if (ce.tool === "nump") el.n = ce.elements.filter(e=>e.t==="nump").length + 1;
           ce.elements.push(el); ceRedraw();
         }
         return;
@@ -1240,7 +1288,8 @@ function ceErase(p){
   });
   if (best>=0){
     const removed = ce.elements.splice(best,1)[0];
-    if (removed.t==="num") ce.elements.filter(e=>e.t==="num").forEach((e,idx)=>e.n=idx+1); // renumber
+    if (["num","numb"].includes(removed.t)) ce.elements.filter(e=>e.t==="numb"||e.t==="num").forEach((e,idx)=>e.n=idx+1);
+    if (removed.t==="nump") ce.elements.filter(e=>e.t==="nump").forEach((e,idx)=>e.n=idx+1);
     ceRedraw();
   }
 }
@@ -1251,17 +1300,131 @@ function distToSegment(p, el){
   t = Math.max(0, Math.min(1, t));
   return Math.hypot(p.x-(el.x1+t*vx), p.y-(el.y1+t*vy));
 }
+/* ---------- diagram interpreter (on-device geometric analysis) ---------- */
+function interpretDiagram(elements){
+  const balls = elements.filter(e=>e.t==="ball");
+  const runs = elements.filter(e=>e.t==="move");
+  const cones = elements.filter(e=>e.t==="cone").length;
+  const targets = elements.filter(e=>e.t==="target").length;
+  const coach = elements.find(e=>e.t==="coach");
+  const player = elements.find(e=>e.t==="player");
+  const ballNums = elements.filter(e=>e.t==="numb"||e.t==="num").length;
+  const NET = 500, MID = 280;
+  const tags = new Set(); const bits = [];
+
+  const feeds = balls.filter(b => coach && Math.hypot(b.x1-coach.x, b.y1-coach.y) < 110);
+  let serves = 0, volleys = 0, cross = 0, dtl = 0, deep = 0, short = 0;
+  for (const b of balls){
+    const fromLeft = b.x1 < NET;
+    const oppBase = fromLeft ? CX1 : CX0, ownBase = fromLeft ? CX0 : CX1;
+    const oppServ = fromLeft ? 710 : 290;
+    const crossesNet = (b.x1-NET)*(b.x2-NET) < 0;
+    if (Math.abs(b.x1-ownBase) < 50 && Math.abs(b.y1-MID) < 100 && crossesNet
+        && Math.abs(b.x2-NET) < 230 && Math.abs(b.x2-oppServ) < 240){ serves++; continue; }
+    if (Math.abs(b.x1-NET) < 160){ volleys++; }
+    if (crossesNet){
+      if ((b.y1-MID)*(b.y2-MID) < 0 && Math.abs(b.y2-b.y1) > 70) cross++;
+      else if (Math.abs(b.y2-b.y1) < 70 && Math.abs(b.y1-MID) > 60) dtl++;
+      if (Math.abs(b.x2-oppBase) < 130) deep++;
+      else if (Math.abs(b.x2-NET) < 200) short++;
+    }
+  }
+  let approach = false, recovery = false, lateral = false;
+  for (const r of runs){
+    const pts = movePts(r); const a = pts[0], z = pts[pts.length-1];
+    if (Math.abs(z.x-NET) < 230 && Math.abs(a.x-NET) > 280) approach = true;
+    if (Math.hypot(z.x-a.x, z.y-a.y) < 130 && pts.length > 3) recovery = true;
+    if (Math.abs(z.y-a.y) > 160 && Math.abs(z.x-a.x) < 180) lateral = true;
+  }
+  // tags
+  if (serves) tags.add("Serve");
+  if (volleys) { tags.add("Volley"); tags.add("Net play"); }
+  if (approach) { tags.add("Approach shot"); tags.add("Net play"); }
+  if (cross || dtl) tags.add("Placement");
+  if (cones + targets > 0) tags.add("Placement");
+  if (deep >= 2) tags.add("Depth");
+  if (runs.length) tags.add("Footwork");
+  if (recovery || lateral) tags.add("Recovery");
+  if (balls.length >= 2 && ballNums >= 2) tags.add("Point patterns");
+  if (feeds.length >= 3) tags.add("Consistency");
+  // name
+  const n = ballNums || balls.length;
+  let name = "Custom drill";
+  if (serves) name = "Serve placement drill";
+  else if (approach) name = "Approach & net drill";
+  else if (feeds.length >= 2) name = n + "-ball feeding pattern";
+  else if (cross && dtl) name = "Crosscourt / down-the-line pattern";
+  else if (cross) name = "Crosscourt pattern";
+  else if (dtl) name = "Down-the-line pattern";
+  else if (volleys) name = "Net exchange drill";
+  // goal sentence
+  if (feeds.length) bits.push(`coach feeds ${n>1 ? n+" balls" : "the ball"}${deep ? " deep" : ""}${cross&&dtl ? " to alternating corners" : cross ? " crosscourt" : dtl ? " down the line" : ""}`);
+  else if (serves) bits.push("serve to the marked zone" + (targets ? "s" : ""));
+  else if (balls.length) bits.push(`hit ${n>1 ? n+" shots" : "the shot"}${cross ? " crosscourt" : dtl ? " down the line" : ""}${deep ? " landing deep" : ""}`);
+  if (lateral) bits.push("player covers the baseline side to side");
+  if (approach) bits.push("player closes in to the net");
+  if (recovery) bits.push("recover to home base after each shot");
+  if (targets || cones) bits.push(`aim for the ${targets ? "target" + (targets>1?"s":"") : "cone" + (cones>1?"s":"")}`);
+  let goal = bits.length ? bits.join("; ") : "run the pattern as drawn";
+  goal = goal.charAt(0).toUpperCase() + goal.slice(1) + ".";
+  return { name, goal, tags: [...tags] };
+}
+
+/* ---------- save sheet: title, goal, tags, add-to-library ---------- */
 function saveCourtDiagram(){
-  const s = db.sessions.find(x=>x.id===ce.sessId); if(!s){ closeCourtEditor(); return; }
-  const title = document.getElementById("ce_title").value.trim();
-  const diagram = { title, elements: ce.elements };
+  if (!ce) return;
+  ce.title = document.getElementById("ce_title").value.trim();
+  const d = ce;
+  const tagSel = new Set(d.tags || []);
+  openSheet(`
+    <h2>Save diagram</h2>
+    <label class="f">Drill name</label>
+    <input class="f" id="ds_title" value="${esc(d.title)}" placeholder="e.g. 6-ball warmup">
+    <button class="btn secondary" style="margin-top:12px" onclick="runInterpret()">&#129302; Interpret diagram &#8594; fill name, goal &amp; tags</button>
+    <div class="hint">Reads your arrows, markers and numbers and drafts the details — everything stays editable.</div>
+    <label class="f">Goal / description</label>
+    <textarea class="f" id="ds_goal" placeholder="What this drill trains…">${esc(d.goal||"")}</textarea>
+    <label class="f">Tags</label>
+    <div class="chips" id="ds_tags">${SHOTS.concat(PRINCIPLES).map(t=>
+      `<button class="chip ${tagSel.has(t)?"on":""}" data-v="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    <label class="f" style="display:flex;align-items:center;gap:9px;text-transform:none;font-size:15px;letter-spacing:0">
+      <input type="checkbox" id="ds_lib" style="width:19px;height:19px" ${d.idx<0?"checked":""}>
+      Add to my drill library (reusable in lesson plans)
+    </label>
+    <div class="btnrow"><button class="btn" onclick="finalizeDiagram()">Save diagram</button></div>
+  `);
+  document.querySelectorAll("#ds_tags .chip").forEach(ch=>{ ch.onclick = ()=> ch.classList.toggle("on"); });
+}
+function runInterpret(){
+  const r = interpretDiagram(ce.elements);
+  const titleEl = document.getElementById("ds_title");
+  if (!titleEl.value.trim()) titleEl.value = r.name;
+  document.getElementById("ds_goal").value = r.goal;
+  document.querySelectorAll("#ds_tags .chip").forEach(ch=>{
+    ch.classList.toggle("on", r.tags.includes(ch.dataset.v));
+  });
+  toast("Interpreted — adjust anything that's off");
+}
+function finalizeDiagram(){
+  const s = db.sessions.find(x=>x.id===ce.sessId); if(!s){ closeSheet(); closeCourtEditor(); return; }
+  const title = document.getElementById("ds_title").value.trim();
+  const goal = document.getElementById("ds_goal").value.trim();
+  const tags = [...document.querySelectorAll("#ds_tags .chip.on")].map(x=>x.dataset.v);
+  const toLib = document.getElementById("ds_lib").checked;
+  const diagram = { title, goal, tags, elements: ce.elements };
   if (ce.idx>=0) s.diagrams[ce.idx] = diagram; else s.diagrams.push(diagram);
+  if (toLib){
+    const existing = db.myDrills.find(x=>x.name===title);
+    const lib = { id: existing ? existing.id : uid(), name: title || "Untitled drill",
+      desc: goal, tags, elements: JSON.parse(JSON.stringify(ce.elements)) };
+    if (existing) Object.assign(existing, lib); else db.myDrills.push(lib);
+  }
   save();
   const sessId = ce.sessId;
-  closeCourtEditor();
+  closeSheet(); closeCourtEditor();
   sessTab = "court";
   renderSession(sessId);
-  toast("Diagram saved");
+  toast(toLib ? "Saved — added to your drill library" : "Diagram saved");
 }
 
 /* ============================================================
@@ -1299,14 +1462,13 @@ function renderShare(clientId){
       ${s.objective?`<div style="margin-top:8px;font-size:14.5px"><b>Objective:</b> ${esc(s.objective)}</div>`:""}`;
     if (s.plan && s.plan.length){
       b += `<h4>Lesson plan</h4><ul>${s.plan.map(d=>`<li><b>${esc(d.name)}</b>${d.desc?" — "+esc(d.desc):""}</li>`).join("")}</ul>`;
+      for (const d of s.plan) if (d.elements)
+        b += `<div class="court-thumb" style="margin-top:8px">${diagramSVG(d.elements)}<div class="cap"><span>${esc(d.name)}</span></div></div>`;
     }
-    if (s.notes){
-      if (s.notes.highlights.length) b += `<h4>Highlights</h4><ul>${s.notes.highlights.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
-      if (s.notes.technical.length) b += `<h4 class="clay">Technical instruction</h4><ul>${s.notes.technical.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
-      if (s.notes.next.length) b += `<h4 class="blue">Next steps</h4><ul>${s.notes.next.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
-    }
+    const items = notesItems(s);
+    if (items.length) b += `<h4>Session notes</h4><ul>${items.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
     for (const d of (s.diagrams||[])){
-      b += `<div class="court-thumb" style="margin-top:10px">${diagramSVG(d.elements)}${d.title?`<div class="cap"><span>${esc(d.title)}</span></div>`:""}</div>`;
+      b += `<div class="court-thumb" style="margin-top:10px">${diagramSVG(d.elements)}${(d.title||d.goal)?`<div class="cap" style="display:block"><span style="display:block">${esc(d.title||"")}</span>${d.goal?`<span style="display:block;font-weight:400;color:var(--ink-soft);font-size:12.5px">${esc(d.goal)}</span>`:""}</div>`:""}</div>`;
     }
     return b + `</div>`;
   };
@@ -1325,9 +1487,8 @@ function summaryText(clientId){
     if (s.shots.length) lines.push("  Focus: " + s.shots.concat(s.principles).join(", "));
     if (s.objective) lines.push("  Objective: " + s.objective);
     if (s.plan.length) lines.push("  Plan: " + s.plan.map(d=>d.name).join(" → "));
-    if (s.notes.highlights.length) lines.push("  Highlights: " + s.notes.highlights.join(" · "));
-    if (s.notes.technical.length) lines.push("  Technical: " + s.notes.technical.join(" · "));
-    if (s.notes.next.length) lines.push("  Next steps: " + s.notes.next.join(" · "));
+    const items = notesItems(s);
+    if (items.length) lines.push("  Notes: " + items.join(" · "));
     lines.push("");
   }
   return lines.join("\n");
