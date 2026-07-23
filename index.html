@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e5c46">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CourtNotes">
+<title>CourtNotes — Tennis Coaching Companion</title>
+<style>
+:root{
+  --bg:#f4f5f1;
+  --card:#ffffff;
+  --ink:#17241e;
+  --ink-soft:#5b6a62;
+  --line:#e3e7e0;
+  --green:#0e5c46;
+  --green-soft:#e3efe9;
+  --clay:#d95d39;
+  --clay-soft:#fbe9e2;
+  --blue:#2b6cb0;
+  --blue-soft:#e4eef8;
+  --gold:#b98a1c;
+  --gold-soft:#faf1da;
+  --radius:14px;
+  --shadow:0 1px 3px rgba(23,36,30,.08),0 4px 14px rgba(23,36,30,.06);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45;
+  padding-top:var(--safe-top);
+}
+button{font:inherit;border:none;background:none;color:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+h1,h2,h3,h4{line-height:1.2;font-weight:700}
+#app{max-width:680px;margin:0 auto;padding:14px 14px calc(90px + var(--safe-bottom));min-height:100%}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.topbar .back{width:38px;height:38px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+.topbar h1{font-size:21px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar .sub{font-size:13px;color:var(--ink-soft);font-weight:400}
+.brand{display:flex;align-items:center;gap:10px;margin:4px 0 16px}
+.brand .logo{width:42px;height:42px;border-radius:12px;background:var(--green);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:var(--shadow)}
+.brand h1{font-size:24px}
+.brand .tag{font-size:13px;color:var(--ink-soft)}
+
+/* ---------- cards & lists ---------- */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.card.tappable:active{transform:scale(.985)}
+.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);
+  font-weight:700;margin:18px 2px 8px}
+.empty{color:var(--ink-soft);text-align:center;padding:26px 10px;font-size:15px}
+.row{display:flex;align-items:center;gap:12px}
+.row .grow{flex:1;min-width:0}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--green-soft);color:var(--green);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex:none}
+.client-name{font-weight:700;font-size:17px}
+.meta{font-size:13px;color:var(--ink-soft)}
+.chev{color:#b9c2bb;font-size:20px;flex:none}
+
+/* ---------- chips ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1.5px solid var(--line);
+  font-size:13.5px;font-weight:600;color:var(--ink-soft)}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.chip.tag{background:var(--green-soft);border-color:transparent;color:var(--green);padding:3px 10px;font-size:12.5px}
+.chip.tag.clay{background:var(--clay-soft);color:var(--clay)}
+.chip.tag.blue{background:var(--blue-soft);color:var(--blue)}
+.chip.tag.gold{background:var(--gold-soft);color:var(--gold)}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
+  padding:12px 18px;font-weight:700;font-size:15.5px;background:var(--green);color:#fff;
+  box-shadow:var(--shadow);width:100%}
+.btn:active{opacity:.85}
+.btn.secondary{background:var(--card);color:var(--green);border:1.5px solid var(--line)}
+.btn.clay{background:var(--clay)}
+.btn.small{width:auto;padding:8px 14px;font-size:14px;border-radius:10px}
+.btn.ghost{background:none;box-shadow:none;color:var(--green);padding:8px 10px;width:auto}
+.btn.danger-ghost{background:none;box-shadow:none;color:#b23b3b;padding:8px 10px;width:auto;font-size:14px}
+.btnrow{display:flex;gap:9px;margin-top:10px}
+.btnrow .btn{flex:1}
+.fab{position:fixed;right:18px;bottom:calc(20px + var(--safe-bottom));width:58px;height:58px;border-radius:50%;
+  background:var(--clay);color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(217,93,57,.4);z-index:40}
+
+/* ---------- forms ---------- */
+label.f{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin:14px 2px 5px;
+  text-transform:uppercase;letter-spacing:.05em}
+input.f,textarea.f,select.f{width:100%;padding:11px 12px;border-radius:11px;border:1.5px solid var(--line);
+  background:var(--card);font-size:16px}
+textarea.f{min-height:84px;resize:vertical}
+input.f:focus,textarea.f:focus{outline:none;border-color:var(--green)}
+
+/* ---------- session timeline ---------- */
+.sess{border-left:4px solid var(--green);}
+.sess.planned{border-left-color:var(--gold)}
+.sess .date{font-weight:700;font-size:15px}
+.sess .status{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.sess .status.done{color:var(--green)}
+.sess .status.planned{color:var(--gold)}
+.sess .preview{font-size:14px;color:var(--ink-soft);margin-top:6px;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sess .chips{margin-top:8px}
+
+/* ---------- session editor sections ---------- */
+.seg{display:flex;background:var(--card);border-radius:12px;padding:4px;box-shadow:var(--shadow);margin-bottom:14px}
+.seg button{flex:1;padding:9px 4px;border-radius:9px;font-weight:700;font-size:14px;color:var(--ink-soft)}
+.seg button.on{background:var(--green);color:#fff}
+.notebox{position:relative}
+.notebox h3{font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.notebox h3 .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.hint{font-size:13px;color:var(--ink-soft);margin:6px 2px}
+
+/* ---------- dictation ---------- */
+.micwrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0 4px}
+.micbtn{width:74px;height:74px;border-radius:50%;background:var(--clay);color:#fff;font-size:32px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(217,93,57,.35);position:relative}
+.micbtn.rec{background:#b23b3b;animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(178,59,59,.45)}70%{box-shadow:0 0 0 18px rgba(178,59,59,0)}100%{box-shadow:0 0 0 0 rgba(178,59,59,0)}}
+.micstate{font-size:13.5px;font-weight:600;color:var(--ink-soft);text-align:center}
+.interim{color:var(--ink-soft);font-style:italic}
+
+/* ---------- drills ---------- */
+.drill{border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;margin-top:9px;background:#fdfdfc}
+.drill .dname{font-weight:700;font-size:15px}
+.drill .ddesc{font-size:13.5px;color:var(--ink-soft);margin-top:3px}
+.drill .dfoot{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.lvl{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:6px;background:var(--blue-soft);color:var(--blue)}
+.phase-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--clay);margin-top:14px}
+
+/* ---------- court editor ---------- */
+#courtOverlay{position:fixed;inset:0;background:#10231c;z-index:100;display:flex;flex-direction:column;
+  padding-top:var(--safe-top)}
+#courtOverlay .cbar{display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff}
+#courtOverlay .cbar h2{font-size:16px;flex:1;font-weight:600}
+#courtOverlay .cbar button{font-weight:700;padding:8px 12px;border-radius:9px;font-size:14px}
+#courtOverlay .cbar .save{background:var(--clay);color:#fff}
+#courtOverlay .cbar .cancel{color:#cfd8d2}
+.courtwrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:6px}
+#courtSVG{width:100%;height:100%;touch-action:none}
+.toolbar{display:flex;gap:6px;padding:10px 10px calc(12px + var(--safe-bottom));overflow-x:auto;background:#0c1b15}
+.tool{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:#9fb3a9;font-size:11px;
+  font-weight:600;padding:7px 10px;border-radius:10px;min-width:58px}
+.tool svg{width:26px;height:26px}
+.tool.on{background:rgba(255,255,255,.14);color:#fff}
+.court-thumb{border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin-top:9px;background:#3a7ca5}
+.court-thumb svg{display:block;width:100%;height:auto}
+.court-thumb .cap{background:var(--card);padding:7px 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center}
+.court-thumb .cap span{flex:1}
+
+/* ---------- share view ---------- */
+.share-doc{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 18px}
+.share-doc h2{font-size:20px;margin-bottom:2px}
+.share-doc .sd-sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:14px}
+.share-sess{border-top:1.5px solid var(--line);padding:14px 0}
+.share-sess h3{font-size:16px}
+.share-sess h4{font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:10px 0 4px;color:var(--green)}
+.share-sess h4.clay{color:var(--clay)}
+.share-sess h4.blue{color:var(--blue)}
+.share-sess ul{margin:2px 0 2px 20px;font-size:14.5px}
+.share-sess li{margin-bottom:3px}
+
+/* ---------- dialog ---------- */
+#dialogRoot{position:fixed;inset:0;z-index:90;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(16,30,24,.45)}
+#dialogRoot.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:680px;border-radius:20px 20px 0 0;
+  padding:18px 16px calc(20px + var(--safe-bottom));max-height:88vh;overflow-y:auto}
+.sheet h2{font-size:19px;margin-bottom:4px}
+.grabber{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+
+.progress-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.stat{background:var(--bg);border-radius:11px;padding:10px 12px}
+.stat .n{font-size:22px;font-weight:800;color:var(--green)}
+.stat .l{font-size:12.5px;color:var(--ink-soft);font-weight:600}
+.bar{height:7px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--green);border-radius:4px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + var(--safe-bottom));
+  background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;
+  z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+@media print{
+  body{background:#fff;padding:0}
+  #app{padding:0;max-width:none}
+  .no-print,.fab,.topbar .back{display:none !important}
+  .share-doc{box-shadow:none;border-radius:0}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <noscript><div style="padding:40px 20px;text-align:center;font-family:sans-serif">
+    <h2>&#127934; CourtNotes</h2>
+    <p style="margin-top:10px">This app needs JavaScript to run.<br>
+    If you're seeing this in a file preview, open the file in <b>Safari or Chrome</b> instead.</p>
+  </div></noscript>
+</div>
+<div id="dialogRoot"></div>
+<div id="courtOverlayRoot"></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+/* ============================================================
+   CourtNotes — single-file tennis coaching companion
+   ============================================================ */
+
+/* ---------- safe storage (falls back to memory if blocked) ---------- */
+const store = (() => {
+  let mem = {};
+  let ok = false;
+  try {
+    localStorage.setItem("__cn_test", "1");
+    localStorage.removeItem("__cn_test");
+    ok = true;
+  } catch (e) { ok = false; }
+  return {
+    persistent: ok,
+    get(k){ try { return ok ? localStorage.getItem(k) : (mem[k] ?? null); } catch(e){ return mem[k] ?? null; } },
+    set(k,v){ try { if (ok) localStorage.setItem(k,v); else mem[k]=v; } catch(e){ mem[k]=v; } }
+  };
+})();
+
+/* ---------- state ---------- */
+const DB_KEY = "courtnotes_v1";
+let db = loadDB();
+function loadDB(){
+  try {
+    const raw = store.get(DB_KEY);
+    if (raw) { const d = JSON.parse(raw); if (d && d.clients) return d; }
+  } catch(e){}
+  return { clients: [], sessions: [] };
+}
+function save(){ store.set(DB_KEY, JSON.stringify(db)); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+function fmtDate(iso){
+  if (!iso) return "";
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric", year:"numeric"});
+}
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+/* ---------- constants ---------- */
+const SHOTS = ["Forehand","Backhand","Serve","Return","Volley","Overhead","Slice","Drop shot","Lob","Approach shot"];
+const PRINCIPLES = ["Preparation","Contact point","Footwork","Spacing","Recovery","Weight transfer","Topspin","Consistency","Depth","Placement","Point patterns","Net play"];
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const app = document.getElementById("app");
+let route = { view: "home" };
+function go(view, params = {}){
+  route = { view, ...params };
+  window.scrollTo(0,0);
+  render();
+}
+function render(){
+  stopDictation(true);
+  if (route.view === "home") renderHome();
+  else if (route.view === "client") renderClient(route.clientId);
+  else if (route.view === "session") renderSession(route.sessionId);
+  else if (route.view === "share") renderShare(route.clientId);
+  else renderHome();
+}
+
+/* ============================================================
+   HOME — client folders
+   ============================================================ */
+function renderHome(){
+  const clients = [...db.clients].sort((a,b)=>a.name.localeCompare(b.name));
+  let html = `
+    <div class="brand">
+      <div class="logo">&#127934;</div>
+      <div><h1>CourtNotes</h1><div class="tag">Your coaching companion</div></div>
+    </div>`;
+  if (!store.persistent) {
+    html += `<div class="card" style="background:var(--gold-soft);font-size:13.5px">
+      &#9888;&#65039; Preview mode — data won't be saved here. Open this file in Safari or Chrome (and add it to your home screen) for full saving.</div>`;
+  }
+  html += `<div class="section-title">Clients (${clients.length})</div>`;
+  if (!clients.length){
+    html += `<div class="card"><div class="empty">No clients yet.<br>Tap <b>+</b> to add your first client folder.</div></div>`;
+  }
+  for (const c of clients){
+    const sess = clientSessions(c.id);
+    const done = sess.filter(s=>s.status==="done");
+    const planned = sess.filter(s=>s.status==="planned");
+    const last = done[0];
+    let sub = last ? "Last session " + fmtDate(last.date) : "No sessions yet";
+    if (planned.length) sub += " · " + planned.length + " planned";
+    html += `
+    <div class="card tappable row" onclick="go('client',{clientId:'${c.id}'})">
+      <div class="avatar">${esc(initials(c.name))}</div>
+      <div class="grow">
+        <div class="client-name">${esc(c.name)}</div>
+        <div class="meta">${esc(sub)}</div>
+        ${c.focus && c.focus.length ? `<div class="chips" style="margin-top:6px">${c.focus.slice(0,3).map(f=>`<span class="chip tag">${esc(f)}</span>`).join("")}</div>` : ""}
+      </div>
+      <div class="chev">&#8250;</div>
+    </div>`;
+  }
+  html += `
+    <div class="section-title">Data</div>
+    <div class="btnrow no-print">
+      <button class="btn secondary" onclick="exportData()">&#11015;&#65039; Back up</button>
+      <button class="btn secondary" onclick="importData()">&#11014;&#65039; Restore</button>
+    </div>
+    <button class="fab" onclick="openClientDialog()" aria-label="Add client">+</button>`;
+  app.innerHTML = html;
+}
+function initials(name){
+  return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "?";
+}
+function clientSessions(clientId){
+  return db.sessions.filter(s=>s.clientId===clientId)
+    .sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+}
+
+/* ============================================================
+   CLIENT DIALOG (add / edit)
+   ============================================================ */
+function openClientDialog(clientId){
+  const c = clientId ? db.clients.find(x=>x.id===clientId) : null;
+  const focus = c ? [...(c.focus||[])] : [];
+  openSheet(`
+    <h2>${c ? "Edit client" : "New client"}</h2>
+    <label class="f">Name</label>
+    <input class="f" id="cd_name" value="${c?esc(c.name):""}" placeholder="e.g. Maria Chen" autocomplete="off">
+    <label class="f">Level / notes</label>
+    <input class="f" id="cd_level" value="${c?esc(c.level||""):""}" placeholder="e.g. 3.5 intermediate, plays lefty">
+    <label class="f">Long-term goals</label>
+    <textarea class="f" id="cd_goals" placeholder="e.g. Develop reliable topspin forehand, improve second serve">${c?esc(c.goals||""):""}</textarea>
+    <label class="f">Current focus areas</label>
+    <div class="chips" id="cd_focus">${SHOTS.concat(PRINCIPLES).map(s=>
+      `<button class="chip ${focus.includes(s)?"on":""}" data-v="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+    <div class="btnrow">
+      ${c ? `<button class="btn danger-ghost" style="flex:0" onclick="deleteClient('${c.id}')">Delete</button>` : ""}
+      <button class="btn" id="cd_save">${c ? "Save changes" : "Add client"}</button>
+    </div>
+  `);
+  document.querySelectorAll("#cd_focus .chip").forEach(ch=>{
+    ch.onclick = ()=> ch.classList.toggle("on");
+  });
+  document.getElementById("cd_save").onclick = ()=>{
+    const name = document.getElementById("cd_name").value.trim();
+    if (!name){ toast("Please enter a name"); return; }
+    const focusSel = [...document.querySelectorAll("#cd_focus .chip.on")].map(x=>x.dataset.v);
+    if (c){
+      c.name = name;
+      c.level = document.getElementById("cd_level").value.trim();
+      c.goals = document.getElementById("cd_goals").value.trim();
+      c.focus = focusSel;
+    } else {
+      db.clients.push({ id: uid(), name,
+        level: document.getElementById("cd_level").value.trim(),
+        goals: document.getElementById("cd_goals").value.trim(),
+        focus: focusSel, created: todayISO() });
+    }
+    save(); closeSheet(); render(); toast(c ? "Client updated" : "Client added");
+  };
+}
+function deleteClient(id){
+  if (!confirm("Delete this client and all their sessions? This cannot be undone.")) return;
+  db.clients = db.clients.filter(c=>c.id!==id);
+  db.sessions = db.sessions.filter(s=>s.clientId!==id);
+  save(); closeSheet(); go("home"); toast("Client deleted");
+}
+
+/* ============================================================
+   CLIENT VIEW — folder with timeline + progress
+   ============================================================ */
+function renderClient(clientId){
+  const c = db.clients.find(x=>x.id===clientId);
+  if (!c) return go("home");
+  const sess = clientSessions(clientId);
+  const planned = sess.filter(s=>s.status==="planned");
+  const done = sess.filter(s=>s.status==="done");
+
+  let html = `
+    <div class="topbar">
+      <button class="back" onclick="go('home')">&#8249;</button>
+      <div class="grow" style="min-width:0">
+        <h1>${esc(c.name)}</h1>
+        ${c.level?`<div class="sub">${esc(c.level)}</div>`:""}
+      </div>
+      <button class="btn ghost" onclick="openClientDialog('${c.id}')">Edit</button>
+    </div>`;
+
+  if (c.goals) html += `<div class="card"><div class="meta" style="font-weight:700;color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em">Goals</div><div style="font-size:14.5px;margin-top:3px">${esc(c.goals)}</div></div>`;
+  if (c.focus && c.focus.length) html += `<div class="card"><div class="meta" style="font-weight:700;color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em">Focus areas</div><div class="chips" style="margin-top:7px">${c.focus.map(f=>`<span class="chip tag">${esc(f)}</span>`).join("")}</div></div>`;
+
+  html += progressHTML(done);
+
+  html += `<div class="btnrow no-print">
+      <button class="btn clay" onclick="newSession('${c.id}','planned')">&#128197; Plan lesson</button>
+      <button class="btn" onclick="newSession('${c.id}','done')">&#127934; Log session</button>
+    </div>
+    <button class="btn secondary no-print" style="margin-top:9px" onclick="go('share',{clientId:'${c.id}'})">&#128228; Client summary / share</button>`;
+
+  if (planned.length){
+    html += `<div class="section-title">Upcoming / planned</div>`;
+    for (const s of planned) html += sessionCard(s);
+  }
+  html += `<div class="section-title">Session history</div>`;
+  if (!done.length) html += `<div class="card"><div class="empty">No completed sessions yet.</div></div>`;
+  for (const s of done) html += sessionCard(s);
+
+  app.innerHTML = html;
+}
+function progressHTML(done){
+  if (!done.length) return "";
+  const shotCount = {};
+  for (const s of done) for (const sh of (s.shots||[])) shotCount[sh]=(shotCount[sh]||0)+1;
+  const top = Object.entries(shotCount).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const max = top.length ? top[0][1] : 1;
+  let html = `<div class="card"><div class="meta" style="font-weight:700;color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em">Progress at a glance</div>
+    <div class="progress-grid" style="margin-top:9px">
+      <div class="stat"><div class="n">${done.length}</div><div class="l">Sessions completed</div></div>
+      <div class="stat"><div class="n">${Object.keys(shotCount).length}</div><div class="l">Shots worked on</div></div>
+    </div>`;
+  if (top.length){
+    html += `<div style="margin-top:11px">`;
+    for (const [shot,n] of top){
+      html += `<div style="margin-top:7px"><div class="row" style="justify-content:space-between"><span style="font-size:13.5px;font-weight:600">${esc(shot)}</span><span class="meta">${n} session${n>1?"s":""}</span></div><div class="bar"><i style="width:${Math.round(n/max*100)}%"></i></div></div>`;
+    }
+    html += `</div>`;
+  }
+  return html + `</div>`;
+}
+function sessionCard(s){
+  const shots = (s.shots||[]).slice(0,3);
+  let preview = "";
+  if (s.status==="done"){
+    preview = (s.notes && (s.notes.highlights[0] || s.notes.technical[0])) || s.transcript || s.objective || "";
+  } else {
+    preview = s.objective || (s.plan && s.plan.length ? s.plan[0].name : "");
+  }
+  return `
+  <div class="card tappable sess ${s.status==="planned"?"planned":""}" onclick="go('session',{sessionId:'${s.id}'})">
+    <div class="row" style="justify-content:space-between">
+      <span class="date">${fmtDate(s.date)}</span>
+      <span class="status ${s.status==="done"?"done":"planned"}">${s.status==="done"?"Completed":"Planned"}</span>
+    </div>
+    ${preview?`<div class="preview">${esc(preview)}</div>`:""}
+    <div class="chips">
+      ${shots.map(x=>`<span class="chip tag clay">${esc(x)}</span>`).join("")}
+      ${(s.principles||[]).slice(0,2).map(x=>`<span class="chip tag blue">${esc(x)}</span>`).join("")}
+      ${(s.diagrams&&s.diagrams.length)?`<span class="chip tag gold">&#128506;&#65039; ${s.diagrams.length} diagram${s.diagrams.length>1?"s":""}</span>`:""}
+    </div>
+  </div>`;
+}
+function newSession(clientId, status){
+  const s = {
+    id: uid(), clientId, status, date: todayISO(),
+    shots: [], principles: [], objective: "",
+    plan: [], transcript: "",
+    notes: { highlights: [], technical: [], next: [] },
+    diagrams: []
+  };
+  db.sessions.push(s); save();
+  go("session", { sessionId: s.id });
+}
+
+/* ============================================================
+   SHEET dialog helpers
+   ============================================================ */
+const dialogRoot = document.getElementById("dialogRoot");
+function openSheet(inner){
+  dialogRoot.innerHTML = `<div class="sheet" onclick="event.stopPropagation()"><div class="grabber"></div>${inner}</div>`;
+  dialogRoot.classList.add("open");
+  dialogRoot.onclick = closeSheet;
+}
+function closeSheet(){ dialogRoot.classList.remove("open"); dialogRoot.innerHTML=""; }
+
+/* ============================================================
+   SESSION EDITOR
+   ============================================================ */
+let sessTab = "plan";
+function renderSession(sessionId){
+  const s = db.sessions.find(x=>x.id===sessionId);
+  if (!s) return go("home");
+  const c = db.clients.find(x=>x.id===s.clientId);
+  if (s.status==="done" && sessTab==="plan" && route._auto!==false) sessTab = route.tab || "review";
+  if (route.tab){ sessTab = route.tab; route.tab = null; }
+
+  let html = `
+    <div class="topbar">
+      <button class="back" onclick="go('client',{clientId:'${s.clientId}'})">&#8249;</button>
+      <div class="grow" style="min-width:0">
+        <h1>${esc(c?c.name:"Session")}</h1>
+        <div class="sub">${s.status==="done"?"Session review":"Lesson plan"}</div>
+      </div>
+      <button class="btn danger-ghost" onclick="deleteSession('${s.id}')">Delete</button>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="grow">
+          <label class="f" style="margin-top:0">Date</label>
+          <input class="f" type="date" value="${esc(s.date)}" onchange="updSess('${s.id}','date',this.value)">
+        </div>
+        <div class="grow">
+          <label class="f" style="margin-top:0">Status</label>
+          <select class="f" onchange="updSess('${s.id}','status',this.value);render()">
+            <option value="planned" ${s.status==="planned"?"selected":""}>Planned</option>
+            <option value="done" ${s.status==="done"?"selected":""}>Completed</option>
+          </select>
+        </div>
+      </div>
+      <label class="f">Shots in focus</label>
+      <div class="chips">${SHOTS.map(sh=>`<button class="chip ${s.shots.includes(sh)?"on":""}" onclick="togSess('${s.id}','shots','${esc(sh)}',this)">${esc(sh)}</button>`).join("")}</div>
+      <label class="f">Principles</label>
+      <div class="chips">${PRINCIPLES.map(p=>`<button class="chip ${s.principles.includes(p)?"on":""}" onclick="togSess('${s.id}','principles','${esc(p)}',this)">${esc(p)}</button>`).join("")}</div>
+    </div>
+
+    <div class="seg no-print">
+      <button class="${sessTab==="plan"?"on":""}" onclick="sessTab='plan';renderSession('${s.id}')">&#128203; Plan</button>
+      <button class="${sessTab==="review"?"on":""}" onclick="sessTab='review';renderSession('${s.id}')">&#127908; Review</button>
+      <button class="${sessTab==="court"?"on":""}" onclick="sessTab='court';renderSession('${s.id}')">&#127934; Court</button>
+    </div>
+    <div id="tabbody"></div>`;
+  app.innerHTML = html;
+
+  const body = document.getElementById("tabbody");
+  if (sessTab==="plan") body.innerHTML = planTabHTML(s);
+  else if (sessTab==="review") { body.innerHTML = reviewTabHTML(s); wireReviewTab(s); }
+  else body.innerHTML = courtTabHTML(s);
+}
+function updSess(id, field, val){
+  const s = db.sessions.find(x=>x.id===id); if(!s) return;
+  s[field] = val; save();
+}
+function togSess(id, field, val, el){
+  const s = db.sessions.find(x=>x.id===id); if(!s) return;
+  const i = s[field].indexOf(val);
+  if (i>=0) s[field].splice(i,1); else s[field].push(val);
+  el.classList.toggle("on");
+  save();
+}
+function deleteSession(id){
+  const s = db.sessions.find(x=>x.id===id); if(!s) return;
+  if (!confirm("Delete this session?")) return;
+  db.sessions = db.sessions.filter(x=>x.id!==id);
+  save(); go("client",{clientId:s.clientId}); toast("Session deleted");
+}
+
+/* ---------- PLAN TAB ---------- */
+function planTabHTML(s){
+  let html = `<div class="card">
+    <label class="f" style="margin-top:0">Lesson objective</label>
+    <textarea class="f" placeholder="e.g. Groove topspin forehand crosscourt with earlier preparation"
+      oninput="updSess('${s.id}','objective',this.value)">${esc(s.objective)}</textarea>
+    <button class="btn clay" style="margin-top:12px" onclick="suggestPlan('${s.id}')">&#10024; Suggest lesson plan</button>
+    <div class="hint">Suggestions use the shots &amp; principles selected above — and build on this client's previous sessions.</div>
+  </div>`;
+  html += `<div class="card"><h3 style="font-size:16px">Drill sequence</h3>`;
+  if (!s.plan.length) html += `<div class="empty" style="padding:16px">No drills yet — tap <b>Suggest lesson plan</b> or add your own.</div>`;
+  let lastPhase = "";
+  s.plan.forEach((d,i)=>{
+    if (d.phase && d.phase!==lastPhase){ html += `<div class="phase-label">${esc(d.phase)}</div>`; lastPhase = d.phase; }
+    html += `<div class="drill">
+      <div class="row" style="align-items:flex-start">
+        <div class="grow">
+          <div class="dname">${esc(d.name)}</div>
+          <div class="ddesc">${esc(d.desc||"")}</div>
+          ${d.coaching?`<div class="ddesc" style="color:var(--green);margin-top:4px">&#128161; ${esc(d.coaching)}</div>`:""}
+        </div>
+        <button class="btn danger-ghost" style="padding:2px 6px;font-size:18px" onclick="removeDrill('${s.id}',${i})">&#215;</button>
+      </div>
+      <div class="dfoot">
+        ${d.level?`<span class="lvl">Level ${d.level}</span>`:""}
+        ${(d.tags||[]).map(t=>`<span class="chip tag" style="font-size:11px;padding:2px 8px">${esc(t)}</span>`).join("")}
+      </div>
+    </div>`;
+  });
+  html += `<button class="btn secondary" style="margin-top:12px" onclick="openAddDrill('${s.id}')">+ Add drill</button></div>`;
+  return html;
+}
+function removeDrill(sessId, idx){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  s.plan.splice(idx,1); save(); renderSession(sessId);
+}
+function openAddDrill(sessId){
+  openSheet(`
+    <h2>Add drill</h2>
+    <label class="f">Phase</label>
+    <select class="f" id="ad_phase">
+      <option>Warm-up</option><option selected>Main work</option><option>Game-based</option>
+    </select>
+    <label class="f">Drill name</label>
+    <input class="f" id="ad_name" placeholder="e.g. Crosscourt rally to 20">
+    <label class="f">Description</label>
+    <textarea class="f" id="ad_desc" placeholder="Setup, feeds, targets, success criteria…"></textarea>
+    <div class="btnrow"><button class="btn" id="ad_save">Add to plan</button></div>`);
+  document.getElementById("ad_save").onclick = ()=>{
+    const name = document.getElementById("ad_name").value.trim();
+    if (!name){ toast("Give the drill a name"); return; }
+    const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+    s.plan.push({ name, desc: document.getElementById("ad_desc").value.trim(),
+      phase: document.getElementById("ad_phase").value, custom: true });
+    save(); closeSheet(); renderSession(sessId);
+  };
+}
+
+/* ---------- REVIEW TAB (dictation + structured notes) ---------- */
+function reviewTabHTML(s){
+  const supported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  return `
+  <div class="card no-print">
+    <div class="micwrap">
+      <button class="micbtn" id="micBtn">&#127908;</button>
+      <div class="micstate" id="micState">${supported
+        ? "Tap the mic and talk through the session.<br>Wins, technical cues, what to work on next — I'll sort it."
+        : "Live dictation isn't supported in this browser — use your keyboard's mic key in the box below instead."}</div>
+    </div>
+    <label class="f">Raw session notes / transcript</label>
+    <textarea class="f" id="transcriptBox" style="min-height:110px"
+      placeholder="Dictate here, or type/paste your voice-memo transcript…"
+      oninput="updSess('${s.id}','transcript',this.value)">${esc(s.transcript)}</textarea>
+    <div id="interimLine" class="interim" style="font-size:14px;min-height:18px;margin-top:4px"></div>
+    <button class="btn" style="margin-top:10px" onclick="organizeNotes('${s.id}')">&#10024; Organize into clean notes</button>
+    <div class="hint">Sorts your words into highlights, technical instruction, and next steps. You can edit everything after.</div>
+  </div>
+
+  ${noteBoxHTML(s,"highlights","Session highlights","var(--green)","What went well, breakthroughs, wins")}
+  ${noteBoxHTML(s,"technical","Technical instruction","var(--clay)","Cues and corrections given this session")}
+  ${noteBoxHTML(s,"next","Next steps","var(--blue)","What to build on next lesson, homework")}`;
+}
+function noteBoxHTML(s, key, title, color, ph){
+  return `<div class="card notebox">
+    <h3><span class="dot" style="background:${color}"></span>${title}</h3>
+    <textarea class="f" style="min-height:74px" placeholder="${ph} — one per line"
+      oninput="setNotes('${s.id}','${key}',this.value)">${esc((s.notes[key]||[]).join("\n"))}</textarea>
+  </div>`;
+}
+function setNotes(sessId, key, val){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  s.notes[key] = val.split("\n").map(x=>x.trim()).filter(Boolean);
+  save();
+}
+
+/* ---------- dictation engine ---------- */
+let recog = null, recogActive = false;
+function wireReviewTab(s){
+  const btn = document.getElementById("micBtn");
+  if (!btn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR){ btn.style.opacity=.4; btn.onclick=()=>toast("Dictation not supported here — use keyboard mic"); return; }
+  btn.onclick = ()=> recogActive ? stopDictation() : startDictation(s.id);
+}
+function startDictation(sessId){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  recog = new SR();
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.lang = navigator.language || "en-US";
+  const box = document.getElementById("transcriptBox");
+  const interim = document.getElementById("interimLine");
+  recog.onresult = (ev)=>{
+    let interimText = "";
+    for (let i=ev.resultIndex; i<ev.results.length; i++){
+      const r = ev.results[i];
+      if (r.isFinal){
+        let text = r[0].transcript.trim();
+        if (text){
+          text = text[0].toUpperCase()+text.slice(1);
+          if (!/[.!?]$/.test(text)) text += ".";
+          box.value = (box.value ? box.value.replace(/\s+$/,"")+" " : "") + text;
+          updSess(sessId,"transcript",box.value);
+        }
+      } else interimText += r[0].transcript;
+    }
+    if (interim) interim.textContent = interimText;
+  };
+  recog.onerror = (e)=>{
+    if (e.error==="not-allowed") { toast("Microphone access was blocked"); stopDictation(); }
+  };
+  recog.onend = ()=>{
+    if (recogActive && recog) { try { recog.start(); } catch(e){} } // auto-restart (some browsers stop after silence)
+  };
+  try { recog.start(); } catch(e){ toast("Couldn't start the mic"); return; }
+  recogActive = true;
+  const btn = document.getElementById("micBtn");
+  if (btn){ btn.classList.add("rec"); btn.innerHTML = "&#9632;"; }
+  const st = document.getElementById("micState");
+  if (st) st.innerHTML = "Listening… tap to stop.";
+}
+function stopDictation(silent){
+  recogActive = false;
+  if (recog){ try { recog.onend=null; recog.stop(); } catch(e){} recog = null; }
+  if (silent) return;
+  const btn = document.getElementById("micBtn");
+  if (btn){ btn.classList.remove("rec"); btn.innerHTML = "&#127908;"; }
+  const st = document.getElementById("micState");
+  if (st) st.innerHTML = "Tap the mic to keep dictating.";
+  const interim = document.getElementById("interimLine");
+  if (interim) interim.textContent = "";
+}
+
+/* ---------- transcript → structured notes ---------- */
+const NEXT_RE = /next (time|session|lesson|week)|going forward|homework|work on next|practice at home|before next|for next|keep working on|needs? (more )?(work|reps|practice)|focus (on )?next|still (struggl|needs)|continue (to|with)/i;
+const TECH_RE = /grip|swing|backswing|follow.?through|contact point|contact|racquet|racket|toss|stance|split.?step|footwork|foot work|elbow|wrist|shoulder|hip|knee|rotation|preparation|prep\b|take.?back|spin|topspin|slice|unit turn|weight transfer|balance|spacing|recovery step|low to high|open stance|closed stance|lag|pronation|extension|finish/i;
+const WIN_RE = /great|good|improv|progress|nail(ed)?|breakthrough|well done|much better|really solid|clicked|consistent(ly)? (hit|made)|success|won|impressive|cleaner|big step|proud|finally/i;
+function organizeNotes(sessId){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  const text = (s.transcript||"").trim();
+  if (!text){ toast("Nothing to organize yet — dictate or type first"); return; }
+  const sentences = text.replace(/\n+/g," ").match(/[^.!?]+[.!?]*/g) || [];
+  const buckets = { highlights: [], technical: [], next: [] };
+  for (let raw of sentences){
+    const sent = raw.trim(); if (!sent) continue;
+    const clean = sent.replace(/[.!?]+$/,"");
+    if (NEXT_RE.test(sent)) buckets.next.push(clean);
+    else if (TECH_RE.test(sent)) buckets.technical.push(clean);
+    else if (WIN_RE.test(sent)) buckets.highlights.push(clean);
+    else buckets.highlights.push(clean);
+  }
+  // merge with existing (don't clobber manual edits; append only new lines)
+  for (const k of ["highlights","technical","next"]){
+    const existing = new Set(s.notes[k]);
+    for (const line of buckets[k]) if (!existing.has(line)) s.notes[k].push(line);
+  }
+  save(); renderSession(sessId); toast("Notes organized — review & edit below");
+}
+
+/* ============================================================
+   DRILL LIBRARY
+   phase: warmup | main | game    level: 1 easy → 3 advanced
+   ============================================================ */
+const DRILLS = [
+// ---- warm-ups ----
+{name:"Mini-tennis rally", phase:"warmup", level:1, shots:["Forehand","Backhand"], principles:["Consistency","Contact point"],
+ desc:"Rally inside the service boxes, soft hands, 20-ball target.", coaching:"Quiet feet, early racquet face — feel the contact out front."},
+{name:"Shadow swings with split-step", phase:"warmup", level:1, shots:["Forehand","Backhand","Volley"], principles:["Preparation","Footwork"],
+ desc:"No ball: split-step, unit turn, swing, recover. 3 × 10 each side.", coaching:"Turn before you run — racquet back by the bounce."},
+{name:"Service-line rally ladder", phase:"warmup", level:2, shots:["Forehand","Backhand"], principles:["Consistency","Spacing"],
+ desc:"Rally from service line, then 3/4 court, then baseline — 10 clean balls to advance.", coaching:"Same relaxed swing at every distance; let the legs add depth."},
+{name:"Volley-volley warm-up", phase:"warmup", level:1, shots:["Volley"], principles:["Net play","Contact point"],
+ desc:"Both players at net, quick hands rally, 20-ball target.", coaching:"Block, don't swing — firm wrist, catch it in front."},
+// ---- groundstroke mains ----
+{name:"Crosscourt corner targets", phase:"main", level:1, shots:["Forehand","Backhand"], principles:["Placement","Consistency","Depth"],
+ desc:"Coach feeds, player hits crosscourt to cone targets past the service line. 3 × 10 feeds.", coaching:"Aim 3 feet over the net — height buys depth."},
+{name:"Topspin ladder (net clearance)", phase:"main", level:1, shots:["Forehand","Backhand"], principles:["Topspin","Weight transfer"],
+ desc:"Hit over a raised target (rope/band) landing deep. Low-to-high exaggerated finish.", coaching:"Brush up the back of the ball; finish over the shoulder."},
+{name:"Figure-8 rally pattern", phase:"main", level:2, shots:["Forehand","Backhand"], principles:["Point patterns","Placement","Footwork"],
+ desc:"One player hits only crosscourt, the other only down the line — continuous movement.", coaching:"Recover to the middle of your opponent's angles, not the center mark."},
+{name:"Inside-out forehand feeds", phase:"main", level:2, shots:["Forehand"], principles:["Footwork","Spacing","Placement"],
+ desc:"Feeds to backhand corner; player runs around to hit inside-out forehands. 3 × 8.", coaching:"Small adjustment steps — give yourself room to strike out front."},
+{name:"Depth ladder 2-2-2", phase:"main", level:2, shots:["Forehand","Backhand"], principles:["Depth","Consistency"],
+ desc:"Rally: 2 balls past service line, 2 past 3/4 court, 2 within 6 ft of baseline, repeat.", coaching:"Depth comes from height and finish, not from swinging harder."},
+{name:"Live-ball corner defense", phase:"main", level:3, shots:["Forehand","Backhand"], principles:["Recovery","Footwork","Consistency"],
+ desc:"Coach moves player corner to corner with live rally; player must reset with high deep balls.", coaching:"When stretched, add height — buy time, recover with crossover step."},
+{name:"Short-ball attack rule", phase:"main", level:3, shots:["Forehand","Approach shot"], principles:["Point patterns","Weight transfer","Placement"],
+ desc:"Rally; anything landing short must be attacked down the line and followed to net.", coaching:"Move through the ball — carry your momentum toward the net."},
+// ---- slice / drop / lob ----
+{name:"Slice tunnel drill", phase:"main", level:2, shots:["Slice","Backhand"], principles:["Contact point","Placement"],
+ desc:"Slice backhands under a rope 'tunnel' so they skid low, targets deep.", coaching:"High to low but drive through — carve, don't chop."},
+{name:"Drop shot touch ladder", phase:"main", level:3, shots:["Drop shot"], principles:["Placement","Net play"],
+ desc:"From mid-court, drop shots must bounce twice inside the service box. 3 × 6.", coaching:"Open the face and soften the grip — like catching an egg."},
+{name:"Lob & recover", phase:"main", level:2, shots:["Lob"], principles:["Recovery","Depth"],
+ desc:"Coach attacks net; player throws up topspin/defensive lobs past a target line, then recovers.", coaching:"Get under it — lift with the legs, target their backhand shoulder."},
+// ---- serve & return ----
+{name:"Toss consistency box", phase:"main", level:1, shots:["Serve"], principles:["Preparation","Consistency"],
+ desc:"Toss into a racquet-head target on the ground; then 20 serves focusing only on toss.", coaching:"Lift, don't throw — release at eye level, arm stays long."},
+{name:"Serve placement zones", phase:"main", level:2, shots:["Serve"], principles:["Placement"],
+ desc:"Service boxes split into wide/body/T zones — call the zone before each serve. 3 × 10.", coaching:"Same toss, different contact — disguise lives in the toss."},
+{name:"Second-serve pressure ladder", phase:"main", level:3, shots:["Serve"], principles:["Topspin","Consistency"],
+ desc:"Only second serves; miss two in a row and the ladder resets. Climb to 10.", coaching:"Brush up the back at 7-to-1 — spin is your margin."},
+{name:"Return splits & blocks", phase:"main", level:1, shots:["Return"], principles:["Preparation","Contact point"],
+ desc:"Coach serves at moderate pace; returner split-steps and blocks deep middle. 3 × 8.", coaching:"Shorten the backswing — meet it early, use their pace."},
+{name:"Return direction rule", phase:"main", level:3, shots:["Return"], principles:["Placement","Point patterns"],
+ desc:"Wide serves must be returned crosscourt, T serves down the middle — live points after.", coaching:"Pick your target before the toss goes up."},
+// ---- net game ----
+{name:"Approach-volley-smash trio", phase:"main", level:2, shots:["Volley","Overhead","Approach shot"], principles:["Net play","Footwork"],
+ desc:"Feed sequence: approach shot → first volley → overhead. 3 × 6 sequences.", coaching:"Close in after the approach — split-step as they strike."},
+{name:"Low volley lifts", phase:"main", level:2, shots:["Volley"], principles:["Net play","Contact point"],
+ desc:"Feeds at the feet from mid-court; volley up and deep with soft hands.", coaching:"Bend from the knees, not the waist — racquet head above wrist."},
+{name:"Overhead scramble", phase:"main", level:3, shots:["Overhead"], principles:["Footwork","Recovery"],
+ desc:"Alternating lob feeds — turn, cross-step back, smash, touch the net, repeat × 6.", coaching:"Turn sideways immediately; point at the ball with your off hand."},
+// ---- game-based finishers ----
+{name:"King of the court (baseline)", phase:"game", level:1, shots:["Forehand","Backhand"], principles:["Consistency","Point patterns"],
+ desc:"Points start with a deep feed; win 3 in a row to become 'king'. Champions side defends.", coaching:"Play the score — high-percentage targets when it matters."},
+{name:"Serve + 1 points", phase:"game", level:2, shots:["Serve","Forehand"], principles:["Point patterns","Placement"],
+ desc:"Play points where server must follow a called serve+first-shot pattern (e.g. wide serve → open-court forehand).", coaching:"The serve creates the space; the +1 takes it."},
+{name:"Approach & finish points", phase:"game", level:2, shots:["Approach shot","Volley","Overhead"], principles:["Net play"],
+ desc:"Every point must be finished at the net — no winners allowed from the baseline.", coaching:"Come in behind depth or don't come in."},
+{name:"Depth-only points", phase:"game", level:1, shots:["Forehand","Backhand"], principles:["Depth","Consistency"],
+ desc:"Rally points where any ball landing inside the service line loses the point instantly.", coaching:"Margin over the net is your best friend."},
+{name:"Return + neutralize points", phase:"game", level:3, shots:["Return","Backhand","Slice"], principles:["Recovery","Consistency"],
+ desc:"Server gets one serve; returner wins the point outright if the rally reaches 6 balls.", coaching:"Your first job on return: make the server play."},
+{name:"Pattern lock points", phase:"game", level:3, shots:["Forehand","Backhand"], principles:["Point patterns","Placement"],
+ desc:"Player must hit 3 crosscourt before going down the line — builds patience & shot selection.", coaching:"Change direction on your terms — short or slow balls only."}
+];
+
+/* ============================================================
+   LESSON PLAN SUGGESTION ENGINE
+   ============================================================ */
+function clientLevelForShot(clientId, shot){
+  const n = db.sessions.filter(s=>s.clientId===clientId && s.status==="done" && (s.shots||[]).includes(shot)).length;
+  return n >= 4 ? 3 : n >= 2 ? 2 : 1;
+}
+function suggestPlan(sessId){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  if (!s.shots.length && !s.principles.length){
+    toast("Select at least one shot or principle first"); return;
+  }
+  const usedBefore = new Set();
+  for (const past of db.sessions.filter(x=>x.clientId===s.clientId && x.id!==s.id))
+    for (const d of (past.plan||[])) usedBefore.add(d.name);
+
+  const targetLevel = s.shots.length
+    ? Math.round(s.shots.reduce((a,sh)=>a+clientLevelForShot(s.clientId,sh),0)/s.shots.length)
+    : 2;
+
+  function score(d){
+    let sc = 0;
+    sc += (d.shots||[]).filter(x=>s.shots.includes(x)).length * 3;
+    sc += (d.principles||[]).filter(x=>s.principles.includes(x)).length * 2;
+    if (sc === 0) return -1;                    // must relate to the focus
+    sc -= Math.abs((d.level||1) - targetLevel) * 1.5;  // right difficulty
+    if (!usedBefore.has(d.name)) sc += 1.25;    // freshness
+    else sc += 0.25;                            // familiar is ok, slight nod to variety
+    return sc;
+  }
+  function pick(phase, n, fallbackLoose){
+    let pool = DRILLS.filter(d=>d.phase===phase).map(d=>({d, sc:score(d)}))
+      .filter(x=>x.sc>=0).sort((a,b)=>b.sc-a.sc);
+    if (!pool.length && fallbackLoose)
+      pool = DRILLS.filter(d=>d.phase===phase).map(d=>({d, sc:2-Math.abs((d.level||1)-targetLevel)}))
+        .sort((a,b)=>b.sc-a.sc);
+    return pool.slice(0,n).map(x=>x.d);
+  }
+  const warm = pick("warmup", 2, true);
+  const main = pick("main", 3, false);
+  const game = pick("game", 1, true);
+
+  const plan = [];
+  const phaseName = {warmup:"Warm-up", main:"Main work", game:"Game-based finisher"};
+  for (const arr of [warm, main, game])
+    for (const d of arr)
+      plan.push({ name:d.name, desc:d.desc, coaching:d.coaching, level:d.level,
+        phase: phaseName[d.phase], tags:(d.shots||[]).filter(x=>s.shots.includes(x)).concat((d.principles||[]).filter(x=>s.principles.includes(x))).slice(0,3) });
+
+  // pull forward last session's next steps into the objective if empty
+  if (!s.objective){
+    const lastDone = db.sessions.filter(x=>x.clientId===s.clientId && x.status==="done" && x.id!==s.id)
+      .sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];
+    if (lastDone && lastDone.notes && lastDone.notes.next.length)
+      s.objective = "Build on last session: " + lastDone.notes.next.slice(0,2).join("; ");
+  }
+  s.plan = plan;
+  save(); renderSession(sessId);
+  toast(main.length ? "Plan suggested — tweak as needed" : "Added what I could — try selecting different focus areas");
+}
+
+/* ============================================================
+   COURT DIAGRAMS
+   ============================================================ */
+const CW = 1000, CH = 560;               // viewBox
+const CX0 = 110, CX1 = 890, CY0 = 100, CY1 = 460;  // doubles court bounds
+function courtBaseSVG(){
+  const sy0 = CY0+45, sy1 = CY1-45;      // singles sidelines
+  const svl = 290, svr = 710, mid = 280; // service lines & center
+  return `
+  <rect x="0" y="0" width="${CW}" height="${CH}" fill="#2e6e55"/>
+  <rect x="${CX0}" y="${CY0}" width="${CX1-CX0}" height="${CY1-CY0}" fill="#3a7ca5"/>
+  <g stroke="#ffffff" stroke-width="4" fill="none">
+    <rect x="${CX0}" y="${CY0}" width="${CX1-CX0}" height="${CY1-CY0}"/>
+    <line x1="${CX0}" y1="${sy0}" x2="${CX1}" y2="${sy0}"/>
+    <line x1="${CX0}" y1="${sy1}" x2="${CX1}" y2="${sy1}"/>
+    <line x1="${svl}" y1="${sy0}" x2="${svl}" y2="${sy1}"/>
+    <line x1="${svr}" y1="${sy0}" x2="${svr}" y2="${sy1}"/>
+    <line x1="${svl}" y1="${mid}" x2="${svr}" y2="${mid}"/>
+    <line x1="${CX0}" y1="${mid-7}" x2="${CX0+14}" y2="${mid-7}" stroke-width="3" transform="translate(0,7)"/>
+    <line x1="${CX1-14}" y1="${mid}" x2="${CX1}" y2="${mid}" stroke-width="3"/>
+  </g>
+  <line x1="500" y1="${CY0-18}" x2="500" y2="${CY1+18}" stroke="#1c2f28" stroke-width="7"/>
+  <line x1="500" y1="${CY0-18}" x2="500" y2="${CY1+18}" stroke="#e8e8e8" stroke-width="3" stroke-dasharray="7 6"/>`;
+}
+function elementSVG(el){
+  if (el.t==="ball" || el.t==="move"){
+    const isBall = el.t==="ball";
+    const color = isBall ? "#ffd23e" : "#ffffff";
+    const dash = isBall ? "" : `stroke-dasharray="12 9"`;
+    const ang = Math.atan2(el.y2-el.y1, el.x2-el.x1);
+    const ah = 16;
+    const ax1 = el.x2 - ah*Math.cos(ang - .45), ay1 = el.y2 - ah*Math.sin(ang - .45);
+    const ax2 = el.x2 - ah*Math.cos(ang + .45), ay2 = el.y2 - ah*Math.sin(ang + .45);
+    return `<g stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round">
+      <line x1="${el.x1}" y1="${el.y1}" x2="${el.x2}" y2="${el.y2}" ${dash}/>
+      <polyline points="${ax1},${ay1} ${el.x2},${el.y2} ${ax2},${ay2}"/></g>`;
+  }
+  if (el.t==="cone")
+    return `<g><polygon points="${el.x},${el.y-16} ${el.x-13},${el.y+11} ${el.x+13},${el.y+11}" fill="#ff8a3c" stroke="#c85a14" stroke-width="2.5"/><polygon points="${el.x},${el.y-6} ${el.x-7},${el.y+6} ${el.x+7},${el.y+6}" fill="#ffd9bd"/></g>`;
+  if (el.t==="target")
+    return `<g><circle cx="${el.x}" cy="${el.y}" r="24" fill="#ffffff" opacity=".9"/><circle cx="${el.x}" cy="${el.y}" r="16" fill="#e34d4d"/><circle cx="${el.x}" cy="${el.y}" r="7" fill="#ffffff"/></g>`;
+  if (el.t==="player" || el.t==="coach"){
+    const isP = el.t==="player";
+    return `<g><circle cx="${el.x}" cy="${el.y}" r="20" fill="${isP?"#1d4ed8":"#17241e"}" stroke="#ffffff" stroke-width="3"/><text x="${el.x}" y="${el.y+6}" text-anchor="middle" font-size="19" font-weight="800" fill="#ffffff" font-family="inherit">${isP?"P":"C"}</text></g>`;
+  }
+  return "";
+}
+function diagramSVG(elements, extra){
+  return `<svg viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg" ${extra||""}>
+    ${courtBaseSVG()}<g id="els">${(elements||[]).map(elementSVG).join("")}</g><g id="preview"></g></svg>`;
+}
+
+/* ---------- court tab in session editor ---------- */
+function courtTabHTML(s){
+  let html = `<div class="card">
+    <h3 style="font-size:16px">Court diagrams</h3>
+    <div class="hint" style="margin-top:4px">Sketch shot paths, movement and drill setups to show your client.</div>`;
+  if (!s.diagrams.length) html += `<div class="empty" style="padding:16px">No diagrams yet.</div>`;
+  s.diagrams.forEach((d,i)=>{
+    html += `<div class="court-thumb">
+      ${diagramSVG(d.elements)}
+      <div class="cap"><span>${esc(d.title||("Diagram "+(i+1)))}</span>
+        <button class="btn ghost" style="padding:4px 8px" onclick="openCourtEditor('${s.id}',${i})">Edit</button>
+        <button class="btn danger-ghost" style="padding:4px 8px" onclick="deleteDiagram('${s.id}',${i})">&#215;</button>
+      </div></div>`;
+  });
+  html += `<button class="btn" style="margin-top:12px" onclick="openCourtEditor('${s.id}',-1)">&#9999;&#65039; New diagram</button></div>`;
+  return html;
+}
+function deleteDiagram(sessId, idx){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  if (!confirm("Delete this diagram?")) return;
+  s.diagrams.splice(idx,1); save(); renderSession(sessId);
+}
+
+/* ---------- full-screen court editor ---------- */
+const courtRoot = document.getElementById("courtOverlayRoot");
+let ce = null; // court editor state
+function openCourtEditor(sessId, idx){
+  const s = db.sessions.find(x=>x.id===sessId); if(!s) return;
+  const existing = idx>=0 ? s.diagrams[idx] : null;
+  ce = { sessId, idx, tool:"ball",
+    elements: existing ? JSON.parse(JSON.stringify(existing.elements)) : [],
+    title: existing ? existing.title : "", drag:null };
+  const tools = [
+    ["ball","Ball path", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="18" y2="6"/><polyline points="12 5 18 6 17 12"/></svg>`],
+    ["move","Player run", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><line x1="4" y1="20" x2="18" y2="6"/><polyline points="12 5 18 6 17 12" stroke-dasharray="0"/></svg>`],
+    ["cone","Cone", `<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12,4 5,20 19,20"/></svg>`],
+    ["target","Target", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>`],
+    ["player","Player", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="currentColor" stroke="none" font-weight="bold">P</text></svg>`],
+    ["coach","Coach", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-size="11" fill="currentColor" stroke="none" font-weight="bold">C</text></svg>`],
+    ["erase","Eraser", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16 L12 8 L20 16 L14 22 L8 22 Z"/></svg>`]
+  ];
+  courtRoot.innerHTML = `
+  <div id="courtOverlay">
+    <div class="cbar">
+      <button class="cancel" onclick="closeCourtEditor()">Cancel</button>
+      <input id="ce_title" placeholder="Diagram title…" value="${esc(ce.title)}"
+        style="flex:1;background:rgba(255,255,255,.12);border:none;border-radius:9px;padding:8px 11px;color:#fff;font-size:14.5px;min-width:0">
+      <button onclick="ceUndo()" style="color:#cfd8d2;font-size:15px">&#8630; Undo</button>
+      <button class="save" onclick="saveCourtDiagram()">Done</button>
+    </div>
+    <div class="courtwrap"><div style="width:100%;max-height:100%" id="courtHolder">${diagramSVG(ce.elements, 'id="courtSVG"')}</div></div>
+    <div class="toolbar">
+      ${tools.map(([id,label,icon])=>`<button class="tool ${id===ce.tool?"on":""}" data-tool="${id}">${icon}<span>${label}</span></button>`).join("")}
+      <button class="tool" id="ce_clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 6h14M9 6V4h6v2m-8 3v11h10V9"/></svg><span>Clear</span></button>
+    </div>
+  </div>`;
+  document.querySelectorAll("#courtOverlay .tool[data-tool]").forEach(b=>{
+    b.onclick = ()=>{
+      ce.tool = b.dataset.tool;
+      document.querySelectorAll("#courtOverlay .tool").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+    };
+  });
+  document.getElementById("ce_clear").onclick = ()=>{ if(confirm("Clear the whole diagram?")){ ce.elements=[]; ceRedraw(); } };
+  wireCourtPointer();
+}
+function closeCourtEditor(){ courtRoot.innerHTML=""; ce=null; }
+function ceRedraw(){
+  const g = document.querySelector("#courtSVG #els");
+  if (g) g.innerHTML = ce.elements.map(elementSVG).join("");
+}
+function ceUndo(){ if (ce && ce.elements.length){ ce.elements.pop(); ceRedraw(); } }
+function svgPoint(svg, ev){
+  const pt = svg.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return { x: Math.max(0,Math.min(CW,p.x)), y: Math.max(0,Math.min(CH,p.y)) };
+}
+function wireCourtPointer(){
+  const svg = document.getElementById("courtSVG");
+  const preview = ()=>document.querySelector("#courtSVG #preview");
+  svg.addEventListener("pointerdown", ev=>{
+    ev.preventDefault();
+    svg.setPointerCapture(ev.pointerId);
+    const p = svgPoint(svg, ev);
+    if (ce.tool==="erase"){ ceErase(p); return; }
+    if (ce.tool==="ball" || ce.tool==="move"){ ce.drag = { x1:p.x, y1:p.y }; return; }
+    ce.elements.push({ t: ce.tool, x:p.x, y:p.y });
+    ceRedraw();
+  });
+  svg.addEventListener("pointermove", ev=>{
+    if (!ce || !ce.drag) return;
+    const p = svgPoint(svg, ev);
+    preview().innerHTML = elementSVG({ t:ce.tool, x1:ce.drag.x1, y1:ce.drag.y1, x2:p.x, y2:p.y });
+  });
+  const finish = ev=>{
+    if (!ce || !ce.drag) return;
+    const p = svgPoint(svg, ev);
+    const dx = p.x-ce.drag.x1, dy = p.y-ce.drag.y1;
+    if (Math.hypot(dx,dy) > 18)
+      ce.elements.push({ t:ce.tool, x1:ce.drag.x1, y1:ce.drag.y1, x2:p.x, y2:p.y });
+    ce.drag = null;
+    preview().innerHTML = "";
+    ceRedraw();
+  };
+  svg.addEventListener("pointerup", finish);
+  svg.addEventListener("pointercancel", ()=>{ if(ce){ ce.drag=null; const pv=preview(); if(pv) pv.innerHTML=""; } });
+}
+function ceErase(p){
+  let best = -1, bestD = 46;
+  ce.elements.forEach((el,i)=>{
+    let d;
+    if (el.t==="ball"||el.t==="move") d = distToSegment(p, el);
+    else d = Math.hypot(p.x-el.x, p.y-el.y);
+    if (d < bestD){ bestD = d; best = i; }
+  });
+  if (best>=0){ ce.elements.splice(best,1); ceRedraw(); }
+}
+function distToSegment(p, el){
+  const vx = el.x2-el.x1, vy = el.y2-el.y1;
+  const len2 = vx*vx+vy*vy || 1;
+  let t = ((p.x-el.x1)*vx + (p.y-el.y1)*vy)/len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x-(el.x1+t*vx), p.y-(el.y1+t*vy));
+}
+function saveCourtDiagram(){
+  const s = db.sessions.find(x=>x.id===ce.sessId); if(!s){ closeCourtEditor(); return; }
+  const title = document.getElementById("ce_title").value.trim();
+  const diagram = { title, elements: ce.elements };
+  if (ce.idx>=0) s.diagrams[ce.idx] = diagram; else s.diagrams.push(diagram);
+  save();
+  const sessId = ce.sessId;
+  closeCourtEditor();
+  sessTab = "court";
+  renderSession(sessId);
+  toast("Diagram saved");
+}
+
+/* ============================================================
+   SHARE / CLIENT SUMMARY
+   ============================================================ */
+function renderShare(clientId){
+  const c = db.clients.find(x=>x.id===clientId);
+  if (!c) return go("home");
+  const sess = clientSessions(clientId);
+  const planned = sess.filter(s=>s.status==="planned");
+  const done = sess.filter(s=>s.status==="done");
+
+  let html = `
+  <div class="topbar no-print">
+    <button class="back" onclick="go('client',{clientId:'${c.id}'})">&#8249;</button>
+    <div class="grow"><h1>Client summary</h1><div class="sub">Read-only view to share</div></div>
+  </div>
+  <div class="btnrow no-print" style="margin-bottom:14px">
+    <button class="btn" onclick="shareText('${c.id}')">&#128228; Share</button>
+    <button class="btn secondary" onclick="window.print()">&#128424;&#65039; Print / PDF</button>
+  </div>
+  <div class="share-doc">
+    <h2>${esc(c.name)} — Training summary</h2>
+    <div class="sd-sub">${esc(c.level||"")}${c.level?" · ":""}Prepared ${fmtDate(todayISO())} · CourtNotes</div>
+    ${c.goals?`<div style="margin-bottom:12px"><b>Goals:</b> ${esc(c.goals)}</div>`:""}
+    ${c.focus&&c.focus.length?`<div class="chips" style="margin-bottom:6px">${c.focus.map(f=>`<span class="chip tag">${esc(f)}</span>`).join("")}</div>`:""}`;
+
+  const sessBlock = (s)=>{
+    let b = `<div class="share-sess">
+      <div class="row" style="justify-content:space-between">
+        <h3>${fmtDate(s.date)}</h3>
+        <span class="status ${s.status==="done"?"done":"planned"}" style="font-size:12px;font-weight:800;text-transform:uppercase">${s.status==="done"?"Completed":"Planned"}</span>
+      </div>
+      ${(s.shots.length||s.principles.length)?`<div class="chips" style="margin-top:6px">${s.shots.map(x=>`<span class="chip tag clay">${esc(x)}</span>`).join("")}${s.principles.map(x=>`<span class="chip tag blue">${esc(x)}</span>`).join("")}</div>`:""}
+      ${s.objective?`<div style="margin-top:8px;font-size:14.5px"><b>Objective:</b> ${esc(s.objective)}</div>`:""}`;
+    if (s.plan && s.plan.length){
+      b += `<h4>Lesson plan</h4><ul>${s.plan.map(d=>`<li><b>${esc(d.name)}</b>${d.desc?" — "+esc(d.desc):""}</li>`).join("")}</ul>`;
+    }
+    if (s.notes){
+      if (s.notes.highlights.length) b += `<h4>Highlights</h4><ul>${s.notes.highlights.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+      if (s.notes.technical.length) b += `<h4 class="clay">Technical instruction</h4><ul>${s.notes.technical.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+      if (s.notes.next.length) b += `<h4 class="blue">Next steps</h4><ul>${s.notes.next.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+    }
+    for (const d of (s.diagrams||[])){
+      b += `<div class="court-thumb" style="margin-top:10px">${diagramSVG(d.elements)}${d.title?`<div class="cap"><span>${esc(d.title)}</span></div>`:""}</div>`;
+    }
+    return b + `</div>`;
+  };
+  for (const s of planned) html += sessBlock(s);
+  for (const s of done) html += sessBlock(s);
+  if (!sess.length) html += `<div class="empty">No sessions recorded yet.</div>`;
+  html += `</div>`;
+  app.innerHTML = html;
+}
+function summaryText(clientId){
+  const c = db.clients.find(x=>x.id===clientId); if(!c) return "";
+  const lines = [`${c.name} — Training summary`, ""];
+  if (c.goals) lines.push("Goals: " + c.goals, "");
+  for (const s of clientSessions(clientId)){
+    lines.push(`■ ${fmtDate(s.date)} (${s.status==="done"?"completed":"planned"})`);
+    if (s.shots.length) lines.push("  Focus: " + s.shots.concat(s.principles).join(", "));
+    if (s.objective) lines.push("  Objective: " + s.objective);
+    if (s.plan.length) lines.push("  Plan: " + s.plan.map(d=>d.name).join(" → "));
+    if (s.notes.highlights.length) lines.push("  Highlights: " + s.notes.highlights.join(" · "));
+    if (s.notes.technical.length) lines.push("  Technical: " + s.notes.technical.join(" · "));
+    if (s.notes.next.length) lines.push("  Next steps: " + s.notes.next.join(" · "));
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+async function shareText(clientId){
+  const text = summaryText(clientId);
+  const c = db.clients.find(x=>x.id===clientId);
+  if (navigator.share){
+    try { await navigator.share({ title: (c?c.name:"Client") + " — Training summary", text }); return; } catch(e){ if (e.name==="AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(text); toast("Summary copied to clipboard"); }
+  catch(e){ toast("Couldn't share on this browser — use Print / PDF"); }
+}
+
+/* ============================================================
+   BACKUP / RESTORE
+   ============================================================ */
+function exportData(){
+  const blob = new Blob([JSON.stringify(db, null, 1)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "courtnotes-backup-" + todayISO() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  toast("Backup downloaded");
+}
+function importData(){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "application/json,.json";
+  inp.onchange = ()=>{
+    const f = inp.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      try {
+        const d = JSON.parse(rd.result);
+        if (!d || !Array.isArray(d.clients) || !Array.isArray(d.sessions)) throw 0;
+        if (!confirm(`Restore backup with ${d.clients.length} client(s) and ${d.sessions.length} session(s)? This replaces current data.`)) return;
+        db = d; save(); render(); toast("Backup restored");
+      } catch(e){ toast("That file doesn't look like a CourtNotes backup"); }
+    };
+    rd.readAsText(f);
+  };
+  inp.click();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+render();
+
+</script>
+</body>
+</html>
