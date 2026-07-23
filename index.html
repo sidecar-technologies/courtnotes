@@ -66,6 +66,32 @@ h1,h2,h3,h4{line-height:1.2;font-weight:700}
 .meta{font-size:13px;color:var(--ink-soft)}
 .chev{color:#b9c2bb;font-size:20px;flex:none}
 
+/* ---------- client header & collapsibles ---------- */
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.namewrap{display:flex;align-items:center;gap:7px;min-width:0}
+.namewrap h1{font-size:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.infobtn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink-soft);color:var(--ink-soft);
+  font-size:12.5px;font-weight:700;font-style:italic;font-family:Georgia,serif;flex:none;
+  display:flex;align-items:center;justify-content:center}
+.actioncluster{display:flex;gap:8px;flex:none}
+.actioncluster .act{display:flex;flex-direction:column;align-items:center;gap:2px;width:44px}
+.actioncluster .act .ic{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:17px;box-shadow:var(--shadow)}
+.actioncluster .act span{font-size:9.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.02em}
+.thinbar{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:11px;
+  box-shadow:var(--shadow);padding:8px 12px;margin-bottom:9px;width:100%;text-align:left}
+.thinbar .t{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--green);flex:none}
+.thinbar .sum{flex:1;font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.thinbar .chv{flex:none;color:#b9c2bb;font-size:13px;transition:transform .18s}
+.thinbar .chv.open{transform:rotate(90deg)}
+.expandcard{margin-top:-3px;margin-bottom:9px;border-top-left-radius:4px;border-top-right-radius:4px}
+.goals-ul{margin:0 0 0 18px;font-size:14.5px}
+.goals-ul li{margin:3px 0}
+.focusrow{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding:1px 0}
+.focusrow::-webkit-scrollbar{display:none}
+.focusrow .chip{flex:none;padding:3.5px 9px;font-size:11.5px;font-weight:700}
+
 /* ---------- chips ---------- */
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1.5px solid var(--line);
@@ -322,7 +348,7 @@ function renderHome(){
     if (planned.length) sub += " · " + planned.length + " planned";
     html += `
     <div class="card tappable row" onclick="go('client',{clientId:'${c.id}'})">
-      <div class="avatar">${esc(initials(c.name))}</div>
+      ${avatarHTML(c, 44)}
       <div class="grow">
         <div class="client-name">${esc(c.name)}</div>
         <div class="meta">${esc(sub)}</div>
@@ -343,6 +369,18 @@ function renderHome(){
 function initials(name){
   return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "?";
 }
+function avatarHTML(c, size){
+  const s = size ? `style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.38)}px"` : "";
+  return `<div class="avatar" ${s}>${c.photo ? `<img src="${c.photo}" alt="">` : esc(initials(c.name))}</div>`;
+}
+const ABBR = {"Forehand":"FH","Backhand":"BH","Serve":"SRV","Return":"RET","Volley":"VLY","Overhead":"OH",
+  "Slice":"SL","Drop shot":"DROP","Lob":"LOB","Approach shot":"APP","Preparation":"PREP","Contact point":"CP",
+  "Footwork":"FW","Spacing":"SPC","Recovery":"REC","Weight transfer":"WT","Topspin":"TS","Consistency":"CONS",
+  "Depth":"DEP","Placement":"PLC","Point patterns":"PTRN","Net play":"NET"};
+function abbr(t){ return ABBR[t] || t; }
+function goalLines(c){ return (c.goals||"").split("\n").map(x=>x.trim()).filter(Boolean); }
+const uiCollapse = { goals:true, stats:true };
+function toggleUI(key){ uiCollapse[key] = !uiCollapse[key]; renderClient(route.clientId); }
 function clientSessions(clientId){
   return db.sessions.filter(s=>s.clientId===clientId)
     .sort((a,b)=> (b.date||"").localeCompare(a.date||""));
@@ -351,17 +389,26 @@ function clientSessions(clientId){
 /* ============================================================
    CLIENT DIALOG (add / edit)
    ============================================================ */
+let _cdPhoto = null;
 function openClientDialog(clientId){
   const c = clientId ? db.clients.find(x=>x.id===clientId) : null;
   const focus = c ? [...(c.focus||[])] : [];
+  _cdPhoto = c ? (c.photo||null) : null;
   openSheet(`
     <h2>${c ? "Edit client" : "New client"}</h2>
+    <div class="row" style="margin-top:12px">
+      <div id="cd_photo_prev">${avatarHTML({name:(c?c.name:"?"), photo:_cdPhoto}, 54)}</div>
+      <button class="btn secondary small" onclick="document.getElementById('cd_photo_input').click()">${_cdPhoto?"Change photo":"Add photo"}</button>
+      <input type="file" id="cd_photo_input" accept="image/*" style="display:none">
+    </div>
     <label class="f">Name</label>
     <input class="f" id="cd_name" value="${c?esc(c.name):""}" placeholder="e.g. Maria Chen" autocomplete="off">
     <label class="f">Level / notes</label>
     <input class="f" id="cd_level" value="${c?esc(c.level||""):""}" placeholder="e.g. 3.5 intermediate, plays lefty">
-    <label class="f">Long-term goals</label>
-    <textarea class="f" id="cd_goals" placeholder="e.g. Develop reliable topspin forehand, improve second serve">${c?esc(c.goals||""):""}</textarea>
+    <label class="f">Long-term goals — one per line</label>
+    <textarea class="f" id="cd_goals" placeholder="Reach 4.0&#10;Reduce unforced volley errors&#10;Faster serve">${c?esc(c.goals||""):""}</textarea>
+    <label class="f">Personal notes</label>
+    <textarea class="f" id="cd_personal" placeholder="Birthday, family, fun facts, how they like to be coached…">${c?esc(c.personal||""):""}</textarea>
     <label class="f">Current focus areas</label>
     <div class="chips" id="cd_focus">${SHOTS.concat(PRINCIPLES).map(s=>
       `<button class="chip ${focus.includes(s)?"on":""}" data-v="${esc(s)}">${esc(s)}</button>`).join("")}</div>
@@ -373,23 +420,54 @@ function openClientDialog(clientId){
   document.querySelectorAll("#cd_focus .chip").forEach(ch=>{
     ch.onclick = ()=> ch.classList.toggle("on");
   });
+  document.getElementById("cd_photo_input").onchange = function(){
+    const f = this.files[0]; if(!f) return;
+    const img = new Image();
+    img.onload = ()=>{
+      const size = 128, cv = document.createElement("canvas");
+      cv.width = size; cv.height = size;
+      const ctx = cv.getContext("2d");
+      const m = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, size, size);
+      _cdPhoto = cv.toDataURL("image/jpeg", 0.82);
+      URL.revokeObjectURL(img.src);
+      const prev = document.getElementById("cd_photo_prev");
+      if (prev) prev.innerHTML = avatarHTML({name:"?", photo:_cdPhoto}, 54);
+    };
+    img.src = URL.createObjectURL(f);
+  };
   document.getElementById("cd_save").onclick = ()=>{
     const name = document.getElementById("cd_name").value.trim();
     if (!name){ toast("Please enter a name"); return; }
     const focusSel = [...document.querySelectorAll("#cd_focus .chip.on")].map(x=>x.dataset.v);
-    if (c){
-      c.name = name;
-      c.level = document.getElementById("cd_level").value.trim();
-      c.goals = document.getElementById("cd_goals").value.trim();
-      c.focus = focusSel;
-    } else {
-      db.clients.push({ id: uid(), name,
-        level: document.getElementById("cd_level").value.trim(),
-        goals: document.getElementById("cd_goals").value.trim(),
-        focus: focusSel, created: todayISO() });
-    }
+    const fields = {
+      name,
+      level: document.getElementById("cd_level").value.trim(),
+      goals: document.getElementById("cd_goals").value.trim(),
+      personal: document.getElementById("cd_personal").value.trim(),
+      focus: focusSel, photo: _cdPhoto
+    };
+    if (c) Object.assign(c, fields);
+    else db.clients.push({ id: uid(), ...fields, created: todayISO() });
     save(); closeSheet(); render(); toast(c ? "Client updated" : "Client added");
   };
+}
+function openClientInfo(clientId){
+  const c = db.clients.find(x=>x.id===clientId); if(!c) return;
+  const goals = goalLines(c);
+  openSheet(`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:6px">
+      ${avatarHTML(c, 72)}
+      <h2 style="margin:4px 0 0">${esc(c.name)}</h2>
+      ${c.level?`<div class="meta">${esc(c.level)}</div>`:""}
+    </div>
+    ${c.personal?`<label class="f">About</label><div style="font-size:14.5px;white-space:pre-wrap;background:var(--bg);border-radius:11px;padding:11px 12px">${esc(c.personal)}</div>`:""}
+    ${goals.length?`<label class="f">Goals</label><ul class="goals-ul">${goals.map(g=>`<li>${esc(g)}</li>`).join("")}</ul>`:""}
+    ${(c.focus&&c.focus.length)?`<label class="f">Focus areas</label><div class="chips">${c.focus.map(f=>`<span class="chip tag">${esc(f)}</span>`).join("")}</div>`:""}
+    <div class="btnrow">
+      <button class="btn secondary" onclick="closeSheet();openClientDialog('${c.id}')">&#9999;&#65039; Edit details</button>
+    </div>
+  `);
 }
 function deleteClient(id){
   if (!confirm("Delete this client and all their sessions? This cannot be undone.")) return;
@@ -407,27 +485,47 @@ function renderClient(clientId){
   const sess = clientSessions(clientId);
   const planned = sess.filter(s=>s.status==="planned");
   const done = sess.filter(s=>s.status==="done");
+  const goals = goalLines(c);
+  const focusShots = (c.focus||[]).filter(f=>SHOTS.includes(f));
 
+  /* header: back | avatar | name + info | action cluster */
   let html = `
-    <div class="topbar">
+    <div class="topbar" style="align-items:center">
       <button class="back" onclick="go('home')">&#8249;</button>
+      ${avatarHTML(c, 38)}
       <div class="grow" style="min-width:0">
-        <h1>${esc(c.name)}</h1>
-        ${c.level?`<div class="sub">${esc(c.level)}</div>`:""}
+        <div class="namewrap">
+          <h1>${esc(c.name)}</h1>
+          <button class="infobtn" onclick="openClientInfo('${c.id}')">i</button>
+        </div>
+        ${c.level?`<div class="sub" style="font-size:12.5px;color:var(--ink-soft)">${esc(c.level)}</div>`:""}
       </div>
-      <button class="btn ghost" onclick="openClientDialog('${c.id}')">Edit</button>
+      <div class="actioncluster no-print">
+        <button class="act" onclick="newSession('${c.id}','planned')"><span class="ic" style="background:var(--clay);color:#fff">&#128197;</span><span>Plan</span></button>
+        <button class="act" onclick="newSession('${c.id}','done')"><span class="ic" style="background:var(--green);color:#fff">&#127934;</span><span>Log</span></button>
+        <button class="act" onclick="go('share',{clientId:'${c.id}'})"><span class="ic" style="background:var(--card);color:var(--green)">&#128228;</span><span>Share</span></button>
+      </div>
     </div>`;
 
-  if (c.goals) html += `<div class="card"><div class="meta" style="font-weight:700;color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em">Goals</div><div style="font-size:14.5px;margin-top:3px">${esc(c.goals)}</div></div>`;
-  if (c.focus && c.focus.length) html += `<div class="card"><div class="meta" style="font-weight:700;color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em">Focus areas</div><div class="chips" style="margin-top:7px">${c.focus.map(f=>`<span class="chip tag">${esc(f)}</span>`).join("")}</div></div>`;
+  /* goals: thin collapsible bar */
+  if (goals.length){
+    const sum = focusShots.length ? focusShots.map(abbr).join(" · ") : goals[0];
+    html += `<button class="thinbar" onclick="toggleUI('goals')">
+      <span class="t">Goals</span>
+      <span class="sum">${uiCollapse.goals ? esc(sum) : ""}</span>
+      <span class="chv ${uiCollapse.goals?"":"open"}">&#9654;</span>
+    </button>`;
+    if (!uiCollapse.goals)
+      html += `<div class="card expandcard"><ul class="goals-ul">${goals.map(g=>`<li>${esc(g)}</li>`).join("")}</ul></div>`;
+  }
 
-  html += progressHTML(done);
-
-  html += `<div class="btnrow no-print">
-      <button class="btn clay" onclick="newSession('${c.id}','planned')">&#128197; Plan lesson</button>
-      <button class="btn" onclick="newSession('${c.id}','done')">&#127934; Log session</button>
-    </div>
-    <button class="btn secondary no-print" style="margin-top:9px" onclick="go('share',{clientId:'${c.id}'})">&#128228; Client summary / share</button>`;
+  /* focus: one thin swipeable row of acronym chips */
+  if (c.focus && c.focus.length){
+    html += `<div class="thinbar" style="padding:7px 12px">
+      <span class="t">Focus</span>
+      <div class="focusrow">${c.focus.map(f=>`<span class="chip tag" title="${esc(f)}" onclick="toast('${esc(f)}')">${esc(abbr(f))}</span>`).join("")}</div>
+    </div>`;
+  }
 
   if (planned.length){
     html += `<div class="section-title">Upcoming / planned</div>`;
@@ -437,27 +535,32 @@ function renderClient(clientId){
   if (!done.length) html += `<div class="card"><div class="empty">No completed sessions yet.</div></div>`;
   for (const s of done) html += sessionCard(s);
 
+  /* stats: collapsible, lives at the very bottom */
+  html += statsHTML(done);
+
   app.innerHTML = html;
 }
-function progressHTML(done){
+function statsHTML(done){
   if (!done.length) return "";
   const shotCount = {};
   for (const s of done) for (const sh of (s.shots||[])) shotCount[sh]=(shotCount[sh]||0)+1;
-  const top = Object.entries(shotCount).sort((a,b)=>b[1]-a[1]).slice(0,4);
-  const max = top.length ? top[0][1] : 1;
-  let html = `<div class="card"><div class="meta" style="font-weight:700;color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.05em">Progress at a glance</div>
-    <div class="progress-grid" style="margin-top:9px">
-      <div class="stat"><div class="n">${done.length}</div><div class="l">Sessions completed</div></div>
-      <div class="stat"><div class="n">${Object.keys(shotCount).length}</div><div class="l">Shots worked on</div></div>
-    </div>`;
-  if (top.length){
-    html += `<div style="margin-top:11px">`;
+  const top = Object.entries(shotCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (!top.length) return "";
+  const max = top[0][1];
+  let html = `<div class="section-title">Stats</div>
+    <button class="thinbar" onclick="toggleUI('stats')">
+      <span class="t">Sessions per shot</span>
+      <span class="sum">${uiCollapse.stats ? esc(top.slice(0,3).map(([s,n])=>abbr(s)+" "+n).join(" · ")) : ""}</span>
+      <span class="chv ${uiCollapse.stats?"":"open"}">&#9654;</span>
+    </button>`;
+  if (!uiCollapse.stats){
+    html += `<div class="card expandcard">`;
     for (const [shot,n] of top){
       html += `<div style="margin-top:7px"><div class="row" style="justify-content:space-between"><span style="font-size:13.5px;font-weight:600">${esc(shot)}</span><span class="meta">${n} session${n>1?"s":""}</span></div><div class="bar"><i style="width:${Math.round(n/max*100)}%"></i></div></div>`;
     }
     html += `</div>`;
   }
-  return html + `</div>`;
+  return html;
 }
 function sessionCard(s){
   const shots = (s.shots||[]).slice(0,3);
@@ -1449,7 +1552,7 @@ function renderShare(clientId){
   <div class="share-doc">
     <h2>${esc(c.name)} — Training summary</h2>
     <div class="sd-sub">${esc(c.level||"")}${c.level?" · ":""}Prepared ${fmtDate(todayISO())} · CourtNotes</div>
-    ${c.goals?`<div style="margin-bottom:12px"><b>Goals:</b> ${esc(c.goals)}</div>`:""}
+    ${goalLines(c).length?`<div style="margin-bottom:12px"><b>Goals</b><ul class="goals-ul">${goalLines(c).map(g=>`<li>${esc(g)}</li>`).join("")}</ul></div>`:""}
     ${c.focus&&c.focus.length?`<div class="chips" style="margin-bottom:6px">${c.focus.map(f=>`<span class="chip tag">${esc(f)}</span>`).join("")}</div>`:""}`;
 
   const sessBlock = (s)=>{
